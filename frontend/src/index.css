@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-gray-950 text-gray-100 font-sans antialiased;
+    overscroll-behavior: none;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply w-full py-3.5 px-6 bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white font-semibold rounded-2xl transition-all duration-200 shadow-lg shadow-brand-500/30 active:scale-95;
+  }
+  .btn-secondary {
+    @apply w-full py-3.5 px-6 bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-100 font-semibold rounded-2xl transition-all duration-200 active:scale-95;
+  }
+  .btn-danger {
+    @apply py-2 px-4 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-xl transition-all duration-200 active:scale-95;
+  }
+  .card {
+    @apply bg-gray-900 rounded-2xl p-4 border border-gray-800;
+  }
+  .input {
+    @apply w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all duration-200 text-base;
+  }
+  .label {
+    @apply block text-sm font-medium text-gray-400 mb-1.5;
+  }
+  .page-header {
+    @apply sticky top-0 z-10 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800 px-4 py-3 flex items-center gap-3;
+  }
+  .status-badge-rojo {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-950 text-red-400 border border-red-800;
+  }
+  .status-badge-naranja {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-950 text-orange-400 border border-orange-800;
+  }
+  .status-badge-verde {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-950 text-green-400 border border-green-800;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 2px;
+}
+
+/* Smooth transitions */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Canvas signature */
+.sigCanvas {
+  border-radius: 12px;
+  border: 2px dashed #374151;
+  background: #1f2937;
+  touch-action: none;
+}

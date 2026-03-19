@@ -1,0 +1,7 @@
+node_modules/
+.env
+uploads/
+*.log
+fix_firmas.js
+create_superadmin.js
+seed.js
