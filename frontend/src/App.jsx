@@ -1,25 +1,36 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
-import { AdminRoute, VisitadorRoute, ProtectedRoute } from './components/ProtectedRoute';
+import { AdminRoute, LiderRoute, VisitadorRoute, ProtectedRoute } from './components/ProtectedRoute';
 
-// Pages
+// Pages — Auth
 import Login from './pages/Login';
+
+// Pages — Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 import PuntosManager from './pages/admin/PuntosManager';
 import UsuariosManager from './pages/admin/UsuariosManager';
 import AdminReportes from './pages/admin/AdminReportes';
 import MantenimientosManager from './pages/admin/MantenimientosManager';
 import Calendario from './pages/admin/Calendario';
+
+// Pages — Líder
+import LiderDashboard from './pages/lider/LiderDashboard';
+import LiderPunto from './pages/lider/LiderPunto';
+
+// Pages — Visitador
 import MisPuntos from './pages/visitador/MisPuntos';
 import ReporteForm from './pages/visitador/ReporteForm';
 import ProximasVisitas from './pages/visitador/ProximasVisitas';
+
 import { useAuth } from './context/AuthContext';
 
 function RootRedirect() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isLider } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  return <Navigate to={isAdmin() ? '/admin' : '/mis-puntos'} replace />;
+  if (isAdmin()) return <Navigate to="/admin" replace />;
+  if (isLider()) return <Navigate to="/lider" replace />;
+  return <Navigate to="/mis-puntos" replace />;
 }
 
 function App() {
@@ -45,6 +56,10 @@ function App() {
           <Route path="/admin/reportes" element={<AdminRoute><AdminReportes /></AdminRoute>} />
           <Route path="/admin/mantenimientos" element={<AdminRoute><MantenimientosManager /></AdminRoute>} />
           <Route path="/admin/calendario" element={<AdminRoute><Calendario /></AdminRoute>} />
+
+          {/* Líder */}
+          <Route path="/lider" element={<LiderRoute><LiderDashboard /></LiderRoute>} />
+          <Route path="/lider/punto/:puntoId" element={<LiderRoute><LiderPunto /></LiderRoute>} />
 
           {/* Visitador */}
           <Route path="/mis-puntos" element={<VisitadorRoute><MisPuntos /></VisitadorRoute>} />

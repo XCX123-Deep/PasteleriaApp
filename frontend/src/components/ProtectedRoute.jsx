@@ -12,14 +12,22 @@ export const ProtectedRoute = ({ children }) => {
 export const AdminRoute = ({ children }) => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (user.rol !== 'ADMIN' && user.rol !== 'SUPER_ADMIN') return <Navigate to="/mis-puntos" replace />;
+  if (user.rol !== 'ADMIN' && user.rol !== 'SUPER_ADMIN') return <Navigate to="/" replace />;
   return children;
 };
 
-// Solo Visitador/Líder
+// Solo LIDER
+export const LiderRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.rol !== 'LIDER') return <Navigate to="/" replace />;
+  return children;
+};
+
+// Solo VISITADOR
 export const VisitadorRoute = ({ children }) => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (user.rol === 'ADMIN' || user.rol === 'SUPER_ADMIN') return <Navigate to="/admin" replace />;
+  if (user.rol !== 'VISITADOR') return <Navigate to="/" replace />;
   return children;
 };

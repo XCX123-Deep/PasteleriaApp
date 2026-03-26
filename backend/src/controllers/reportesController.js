@@ -19,8 +19,17 @@ const listarReportes = async (req, res, next) => {
     const { estado, puntoDeVenta, usuario, desde, hasta } = req.query;
     const filtro = {};
 
-    // Visitador solo ve sus reportes
-    if (req.user.rol !== 'ADMIN') {
+    // Filtro por rol:
+    // ADMIN      → sin restricción de usuario/punto
+    // LIDER      → todos los reportes de sus puntos asignados
+    // VISITADOR  → solo sus propios reportes
+    if (req.user.rol === 'LIDER') {
+      const puntosAsignados = await PuntoDeVenta.find(
+        { usuariosAsignados: req.user._id, activo: true },
+        '_id'
+      ).lean();
+      filtro.puntoDeVenta = { $in: puntosAsignados.map((p) => p._id) };
+    } else if (req.user.rol !== 'ADMIN') {
       filtro.usuario = req.user._id;
     }
 
