@@ -139,6 +139,15 @@ export default function TecnicoPunto() {
           )}
         </div>
 
+        {/* Botón para ir al formulario completo con fotos y firma */}
+        <button
+          onClick={() => navigate(`/punto/${puntoId}`)}
+          className="w-full flex items-center justify-center gap-2 bg-teal-900/40 border border-teal-700 text-teal-300 font-semibold py-3 rounded-2xl active:scale-[0.98] transition-all hover:bg-teal-900/60"
+        >
+          <span>📷</span>
+          {reporteActivo ? 'Ver / editar mi reporte con fotos y firma' : 'Crear mi reporte de visita'}
+        </button>
+
         {reporteActivo ? (
           <>
             {/* Cambiar estado */}
