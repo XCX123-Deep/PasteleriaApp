@@ -65,7 +65,7 @@ export default function ReporteForm() {
   const { puntoId } = useParams();
   const navigate = useNavigate();
   const sigRef = useRef(null);
-  const { isAdmin } = useAuth();
+  const { isAdmin, isTecnico } = useAuth();
 
   const [punto, setPunto] = useState(null);
   const [reporteExistente, setReporteExistente] = useState(null);
@@ -246,7 +246,7 @@ export default function ReporteForm() {
           {/* Estado */}
           <div>
             <label className="label text-base font-semibold text-white mb-3 block">Estado del reporte</label>
-            {isAdmin() ? (
+            {isAdmin() || isTecnico() ? (
               <EstadoSelector value={form.estado} onChange={(e) => setForm({ ...form, estado: e })} />
             ) : (
               <div className="flex items-center gap-3">

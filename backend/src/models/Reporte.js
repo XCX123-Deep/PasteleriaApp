@@ -36,6 +36,13 @@ const reporteSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    novedades: [
+      {
+        texto: { type: String, required: true, trim: true },
+        usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+        fecha: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

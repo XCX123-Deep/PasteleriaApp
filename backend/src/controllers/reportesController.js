@@ -20,10 +20,10 @@ const listarReportes = async (req, res, next) => {
     const filtro = {};
 
     // Filtro por rol:
-    // ADMIN      → sin restricción de usuario/punto
-    // LIDER      → todos los reportes de sus puntos asignados
-    // VISITADOR  → solo sus propios reportes
-    if (req.user.rol === 'LIDER') {
+    // ADMIN/SUPER_ADMIN → sin restricción
+    // LIDER/TECNICO     → todos los reportes de sus puntos asignados
+    // VISITADOR         → solo sus propios reportes
+    if (req.user.rol === 'LIDER' || req.user.rol === 'TECNICO') {
       const puntosAsignados = await PuntoDeVenta.find(
         { usuariosAsignados: req.user._id, activo: true },
         '_id'
@@ -117,14 +117,21 @@ const actualizarReporte = async (req, res, next) => {
     const reporte = await Reporte.findById(req.params.id);
     if (!reporte) return res.status(404).json({ success: false, message: 'Reporte no encontrado.' });
 
-    // Solo el dueño o ADMIN puede editar
-    if (req.user.rol !== 'ADMIN' && reporte.usuario.toString() !== req.user._id.toString()) {
+    // Solo el dueño, ADMIN o TÉCNICO (en sus puntos) puede editar
+    const puedeEditar =
+      req.user.rol === 'ADMIN' ||
+      req.user.rol === 'SUPER_ADMIN' ||
+      req.user.rol === 'TECNICO' ||
+      reporte.usuario.toString() === req.user._id.toString();
+    if (!puedeEditar) {
       return res.status(403).json({ success: false, message: 'No tienes permiso para editar este reporte.' });
     }
 
     const { estado, descripcion, fechaVisita } = req.body;
-    // Solo ADMIN puede cambiar el estado del reporte
-    if (estado && req.user.rol === 'ADMIN') reporte.estado = estado.toUpperCase();
+    // ADMIN, SUPER_ADMIN y TÉCNICO pueden cambiar el estado
+    if (estado && ['ADMIN', 'SUPER_ADMIN', 'TECNICO'].includes(req.user.rol)) {
+      reporte.estado = estado.toUpperCase();
+    }
     if (descripcion !== undefined) reporte.descripcion = descripcion;
     if (fechaVisita) reporte.fechaVisita = new Date(fechaVisita);
 
@@ -185,4 +192,27 @@ const eliminarReporte = async (req, res, next) => {
   }
 };
 
-module.exports = { listarReportes, obtenerReporte, crearReporte, actualizarReporte, eliminarReporte };
+// POST /api/reportes/:id/novedad — TÉCNICO y ADMIN
+const agregarNovedad = async (req, res, next) => {
+  try {
+    const { texto } = req.body;
+    if (!texto || !texto.trim()) {
+      return res.status(400).json({ success: false, message: 'El texto de la novedad es requerido.' });
+    }
+    const reporte = await Reporte.findById(req.params.id);
+    if (!reporte) return res.status(404).json({ success: false, message: 'Reporte no encontrado.' });
+
+    reporte.novedades.push({ texto: texto.trim(), usuario: req.user._id });
+    await reporte.save();
+
+    // Populate la última novedad para devolverla
+    await reporte.populate('novedades.usuario', 'nombre email rol');
+    const ultima = reporte.novedades[reporte.novedades.length - 1];
+
+    res.status(201).json({ success: true, message: 'Novedad registrada.', data: ultima });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { listarReportes, obtenerReporte, crearReporte, actualizarReporte, eliminarReporte, agregarNovedad };

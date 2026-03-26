@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
-import { AdminRoute, LiderRoute, VisitadorRoute, ProtectedRoute } from './components/ProtectedRoute';
+import { AdminRoute, LiderRoute, TecnicoRoute, VisitadorRoute, ProtectedRoute } from './components/ProtectedRoute';
 
 // Pages — Auth
 import Login from './pages/Login';
@@ -18,6 +18,10 @@ import Calendario from './pages/admin/Calendario';
 import LiderDashboard from './pages/lider/LiderDashboard';
 import LiderPunto from './pages/lider/LiderPunto';
 
+// Pages — Técnico
+import TecnicoDashboard from './pages/tecnico/TecnicoDashboard';
+import TecnicoPunto from './pages/tecnico/TecnicoPunto';
+
 // Pages — Visitador
 import MisPuntos from './pages/visitador/MisPuntos';
 import ReporteForm from './pages/visitador/ReporteForm';
@@ -26,10 +30,11 @@ import ProximasVisitas from './pages/visitador/ProximasVisitas';
 import { useAuth } from './context/AuthContext';
 
 function RootRedirect() {
-  const { user, isAdmin, isLider } = useAuth();
+  const { user, isAdmin, isLider, isTecnico } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   if (isAdmin()) return <Navigate to="/admin" replace />;
   if (isLider()) return <Navigate to="/lider" replace />;
+  if (isTecnico()) return <Navigate to="/tecnico" replace />;
   return <Navigate to="/mis-puntos" replace />;
 }
 
@@ -60,6 +65,10 @@ function App() {
           {/* Líder */}
           <Route path="/lider" element={<LiderRoute><LiderDashboard /></LiderRoute>} />
           <Route path="/lider/punto/:puntoId" element={<LiderRoute><LiderPunto /></LiderRoute>} />
+
+          {/* Técnico */}
+          <Route path="/tecnico" element={<TecnicoRoute><TecnicoDashboard /></TecnicoRoute>} />
+          <Route path="/tecnico/punto/:puntoId" element={<TecnicoRoute><TecnicoPunto /></TecnicoRoute>} />
 
           {/* Visitador */}
           <Route path="/mis-puntos" element={<VisitadorRoute><MisPuntos /></VisitadorRoute>} />

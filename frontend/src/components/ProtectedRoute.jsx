@@ -31,3 +31,11 @@ export const VisitadorRoute = ({ children }) => {
   if (user.rol !== 'VISITADOR') return <Navigate to="/" replace />;
   return children;
 };
+
+// Solo TÉCNICO
+export const TecnicoRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.rol !== 'TECNICO') return <Navigate to="/" replace />;
+  return children;
+};
