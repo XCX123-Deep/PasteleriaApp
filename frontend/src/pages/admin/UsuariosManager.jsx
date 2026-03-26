@@ -57,7 +57,7 @@ export default function UsuariosManager() {
     } catch { toast.error('Error'); }
   };
 
-  const rolColors = { ADMIN: 'text-purple-400 bg-purple-950 border-purple-800', LIDER: 'text-blue-400 bg-blue-950 border-blue-800', VISITADOR: 'text-gray-400 bg-gray-800 border-gray-700' };
+  const rolColors = { ADMIN: 'text-purple-400 bg-purple-950 border-purple-800', LIDER: 'text-blue-400 bg-blue-950 border-blue-800', TECNICO: 'text-teal-400 bg-teal-950 border-teal-800', VISITADOR: 'text-gray-400 bg-gray-800 border-gray-700' };
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -116,6 +116,7 @@ export default function UsuariosManager() {
                 <select className="input" value={form.rol} onChange={(e) => setForm({ ...form, rol: e.target.value })}>
                   <option value="VISITADOR">Visitador</option>
                   <option value="LIDER">Líder</option>
+                  <option value="TECNICO">Técnico</option>
                   <option value="ADMIN">Administrador</option>
                 </select>
               </div>
