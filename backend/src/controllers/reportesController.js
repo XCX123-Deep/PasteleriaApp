@@ -35,7 +35,12 @@ const listarReportes = async (req, res, next) => {
 
     if (estado) filtro.estado = estado.toUpperCase();
     if (puntoDeVenta) filtro.puntoDeVenta = puntoDeVenta;
-    if (usuario && req.user.rol === 'ADMIN') filtro.usuario = usuario;
+    // ADMIN puede filtrar por cualquier usuario; los demás solo por su propio ID
+    if (usuario) {
+      if (req.user.rol === 'ADMIN' || usuario === req.user._id.toString()) {
+        filtro.usuario = usuario;
+      }
+    }
     if (desde || hasta) {
       filtro.fechaVisita = {};
       if (desde) filtro.fechaVisita.$gte = new Date(desde);

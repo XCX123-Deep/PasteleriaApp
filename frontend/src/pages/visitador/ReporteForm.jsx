@@ -65,7 +65,7 @@ export default function ReporteForm() {
   const { puntoId } = useParams();
   const navigate = useNavigate();
   const sigRef = useRef(null);
-  const { isAdmin, isTecnico } = useAuth();
+  const { isAdmin, isTecnico, user } = useAuth();
 
   const [punto, setPunto] = useState(null);
   const [reporteExistente, setReporteExistente] = useState(null);
@@ -93,7 +93,8 @@ export default function ReporteForm() {
       try {
         const [pRes, rRes] = await Promise.all([
           api.get(`/puntos/${puntoId}`),
-          api.get('/reportes', { params: { puntoDeVenta: puntoId } }),
+          // Filtrar solo el reporte del usuario actual en este punto
+          api.get('/reportes', { params: { puntoDeVenta: puntoId, usuario: user._id } }),
         ]);
         setPunto(pRes.data.data);
         const reportes = rRes.data.data;
