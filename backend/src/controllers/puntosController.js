@@ -1,12 +1,15 @@
 const PuntoDeVenta = require('../models/PuntoDeVenta');
 
-// GET /api/puntos — ADMIN: todos; VISITADOR: sus puntos asignados
+// GET /api/puntos
+// ADMIN/SUPER_ADMIN → todos los puntos
+// LIDER/TECNICO/VISITADOR → solo puntos donde están en usuariosAsignados
 const listarPuntos = async (req, res, next) => {
   try {
     let puntos;
-    if (req.user.rol === 'ADMIN') {
+    if (['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol)) {
       puntos = await PuntoDeVenta.find().populate('usuariosAsignados', 'nombre email rol').sort({ createdAt: -1 });
     } else {
+      // LIDER, TECNICO y VISITADOR: solo sus puntos asignados activos
       puntos = await PuntoDeVenta.find({
         usuariosAsignados: req.user._id,
         activo: true,
@@ -18,11 +21,18 @@ const listarPuntos = async (req, res, next) => {
   }
 };
 
-// GET /api/puntos/:id
+// GET /api/puntos/:id — valida acceso para no-admin
 const obtenerPunto = async (req, res, next) => {
   try {
     const punto = await PuntoDeVenta.findById(req.params.id).populate('usuariosAsignados', 'nombre email rol telefono');
     if (!punto) return res.status(404).json({ success: false, message: 'Punto de venta no encontrado.' });
+
+    // No-admin solo puede ver puntos donde está asignado
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol)) {
+      const asignado = punto.usuariosAsignados.some((u) => u._id.toString() === req.user._id.toString());
+      if (!asignado) return res.status(403).json({ success: false, message: 'No tienes acceso a este punto.' });
+    }
+
     res.json({ success: true, data: punto });
   } catch (error) {
     next(error);
