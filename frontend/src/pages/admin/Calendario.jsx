@@ -1,50 +1,86 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import toast from 'react-hot-toast';
 
+// Colores de estado para reportes
+const colorEstado = (estado) => ({
+  ROJO: 'bg-red-900/80 text-red-300 border border-red-700',
+  NARANJA: 'bg-orange-900/80 text-orange-300 border border-orange-700',
+  VERDE: 'bg-green-900/80 text-green-300 border border-green-700',
+}[estado] || 'bg-gray-700 text-gray-300');
+
+const emojiEstado = { ROJO: '🔴', NARANJA: '🟠', VERDE: '🟢' };
+
+const colorFrecuencia = (freq) => ({
+  UNICA: 'bg-purple-800 text-purple-200',
+  SEMANAL: 'bg-blue-800 text-blue-200',
+  QUINCENAL: 'bg-cyan-800 text-cyan-200',
+  MENSUAL: 'bg-brand-800 text-brand-200',
+}[freq] || 'bg-gray-700 text-gray-300');
+
 export default function Calendario() {
   const navigate = useNavigate();
   const [mantenimientos, setMantenimientos] = useState([]);
+  const [reportes, setReportes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mesBase, setMesBase] = useState(new Date());
-
-  useEffect(() => {
-    api.get('/mantenimientos')
-      .then(({ data }) => setMantenimientos(data.data))
-      .catch(() => toast.error('Error cargando mantenimientos'))
-      .finally(() => setLoading(false));
-  }, []);
 
   const año = mesBase.getFullYear();
   const mes = mesBase.getMonth();
 
-  const primerDia = new Date(año, mes, 1).getDay(); // 0=dom
-  const diasEnMes = new Date(año, mes + 1, 0).getDate();
+  const cargarDatos = useCallback(async (y, m) => {
+    setLoading(true);
+    // Rango del mes completo
+    const desde = new Date(y, m, 1).toISOString();
+    const hasta = new Date(y, m + 1, 0, 23, 59, 59).toISOString();
+    try {
+      const [mRes, rRes] = await Promise.all([
+        api.get('/mantenimientos'),
+        api.get('/reportes', { params: { desde, hasta } }),
+      ]);
+      setMantenimientos(mRes.data.data);
+      setReportes(rRes.data.data);
+    } catch {
+      toast.error('Error cargando calendario');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
+  useEffect(() => { cargarDatos(año, mes); }, [año, mes, cargarDatos]);
+
+  const primerDia = new Date(año, mes, 1).getDay();
+  const diasEnMes = new Date(año, mes + 1, 0).getDate();
   const nombreMes = mesBase.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
 
   const prevMes = () => setMesBase(new Date(año, mes - 1, 1));
   const nextMes = () => setMesBase(new Date(año, mes + 1, 1));
 
-  const eventosDelDia = (dia) =>
+  const mantenimientosDelDia = (dia) =>
     mantenimientos.filter((m) => {
       const f = new Date(m.fechaHora);
       return f.getFullYear() === año && f.getMonth() === mes && f.getDate() === dia;
     });
 
-  const colorFrecuencia = (freq) => ({
-    UNICA: 'bg-purple-800 text-purple-200',
-    SEMANAL: 'bg-blue-800 text-blue-200',
-    QUINCENAL: 'bg-cyan-800 text-cyan-200',
-    MENSUAL: 'bg-brand-800 text-brand-200',
-  }[freq] || 'bg-gray-700 text-gray-300');
+  const reportesDelDia = (dia) =>
+    reportes.filter((r) => {
+      const f = new Date(r.fechaVisita);
+      return f.getFullYear() === año && f.getMonth() === mes && f.getDate() === dia;
+    });
 
   const celdas = Array.from({ length: primerDia === 0 ? 6 : primerDia - 1 }, () => null)
     .concat(Array.from({ length: diasEnMes }, (_, i) => i + 1));
 
   const hoy = new Date();
   const esHoy = (dia) => hoy.getFullYear() === año && hoy.getMonth() === mes && hoy.getDate() === dia;
+
+  // Reportes y mantenimientos del mes actual para la lista inferior
+  const mantenimientosMes = mantenimientos
+    .filter((m) => { const f = new Date(m.fechaHora); return f.getFullYear() === año && f.getMonth() === mes; })
+    .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
+
+  const reportesMes = [...reportes].sort((a, b) => new Date(b.fechaVisita) - new Date(a.fechaVisita));
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -80,26 +116,40 @@ export default function Calendario() {
           <div className="grid grid-cols-7 gap-0.5">
             {celdas.map((dia, idx) => {
               if (!dia) return <div key={`empty-${idx}`} />;
-              const eventos = eventosDelDia(dia);
+              const mants = mantenimientosDelDia(dia);
+              const reps = reportesDelDia(dia);
+              const total = mants.length + reps.length;
               return (
                 <div
                   key={dia}
-                  className={`min-h-[52px] p-1 rounded-xl flex flex-col ${esHoy(dia) ? 'bg-brand-900/50 border border-brand-600' : 'bg-gray-900'}`}
+                  className={`min-h-[56px] p-1 rounded-xl flex flex-col ${esHoy(dia) ? 'bg-brand-900/50 border border-brand-600' : 'bg-gray-900'}`}
                 >
                   <span className={`text-xs font-semibold mb-0.5 ${esHoy(dia) ? 'text-brand-400' : 'text-gray-400'}`}>{dia}</span>
                   <div className="space-y-0.5 overflow-hidden">
-                    {eventos.slice(0, 2).map((m) => (
+                    {/* Mantenimientos primero */}
+                    {mants.slice(0, 1).map((m) => (
                       <div
                         key={m._id}
-                        title={`${m.tipo} — ${m.puntoDeVenta?.nombre}`}
+                        title={`🔧 ${m.tipo} — ${m.puntoDeVenta?.nombre}`}
                         className={`text-[9px] px-1 py-0.5 rounded truncate leading-tight cursor-pointer ${colorFrecuencia(m.frecuencia)} ${m.completado ? 'line-through opacity-50' : ''}`}
                         onClick={() => navigate('/admin/mantenimientos')}
                       >
-                        {m.tipo.slice(0, 12)}
+                        🔧 {m.tipo.slice(0, 10)}
                       </div>
                     ))}
-                    {eventos.length > 2 && (
-                      <span className="text-[9px] text-gray-500">+{eventos.length - 2} más</span>
+                    {/* Reportes */}
+                    {reps.slice(0, 1).map((r) => (
+                      <div
+                        key={r._id}
+                        title={`${emojiEstado[r.estado]} ${r.puntoDeVenta?.nombre} — ${r.estado}`}
+                        className={`text-[9px] px-1 py-0.5 rounded truncate leading-tight cursor-pointer ${colorEstado(r.estado)}`}
+                        onClick={() => navigate('/admin/reportes')}
+                      >
+                        {emojiEstado[r.estado]} {r.puntoDeVenta?.nombre?.slice(0, 9)}
+                      </div>
+                    ))}
+                    {total > 2 && (
+                      <span className="text-[9px] text-gray-500">+{total - 2} más</span>
                     )}
                   </div>
                 </div>
@@ -109,37 +159,63 @@ export default function Calendario() {
 
           {/* Leyenda */}
           <div className="flex flex-wrap gap-2 mt-4">
+            <p className="w-full text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Mantenimientos</p>
             {[['UNICA', 'bg-purple-800'], ['SEMANAL', 'bg-blue-800'], ['QUINCENAL', 'bg-cyan-800'], ['MENSUAL', 'bg-brand-800']].map(([label, bg]) => (
-              <span key={label} className={`${bg} text-white text-[10px] px-2 py-0.5 rounded-full`}>{label}</span>
+              <span key={label} className={`${bg} text-white text-[10px] px-2 py-0.5 rounded-full`}>🔧 {label}</span>
+            ))}
+            <p className="w-full text-gray-500 text-[10px] font-semibold uppercase tracking-wider mt-1">Estados de Reporte</p>
+            {[['ROJO', 'bg-red-900 text-red-300'], ['NARANJA', 'bg-orange-900 text-orange-300'], ['VERDE', 'bg-green-900 text-green-300']].map(([label, cls]) => (
+              <span key={label} className={`${cls} text-[10px] px-2 py-0.5 rounded-full`}>{emojiEstado[label]} {label}</span>
             ))}
           </div>
 
-          {/* Lista próximos en el mes */}
+          {/* Lista del mes — Mantenimientos */}
           <div className="mt-5">
-            <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Este mes</p>
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">🔧 Mantenimientos del mes</p>
             <div className="space-y-2">
-              {mantenimientos
-                .filter((m) => {
-                  const f = new Date(m.fechaHora);
-                  return f.getFullYear() === año && f.getMonth() === mes;
-                })
-                .sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora))
-                .map((m) => (
-                  <div key={m._id} className={`card flex items-center gap-3 ${m.completado ? 'opacity-40' : ''}`}>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{m.tipo}</p>
-                      <p className="text-gray-400 text-xs truncate">🏪 {m.puntoDeVenta?.nombre} · 👤 {m.visitador?.nombre}</p>
-                      <p className="text-gray-500 text-xs">
-                        📅 {new Date(m.fechaHora).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    {m.completado && <span className="text-green-400 text-lg">✓</span>}
+              {mantenimientosMes.map((m) => (
+                <div key={m._id} className={`card flex items-center gap-3 ${m.completado ? 'opacity-40' : ''}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{m.tipo}</p>
+                    <p className="text-gray-400 text-xs truncate">🏪 {m.puntoDeVenta?.nombre} · 👤 {m.visitador?.nombre}</p>
+                    <p className="text-gray-500 text-xs">
+                      📅 {new Date(m.fechaHora).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
-                ))}
+                  {m.completado && <span className="text-green-400 text-lg">✓</span>}
+                </div>
+              ))}
+              {mantenimientosMes.length === 0 && (
+                <p className="text-gray-600 text-sm text-center py-4">Sin mantenimientos este mes</p>
+              )}
             </div>
-            {mantenimientos.filter((m) => { const f = new Date(m.fechaHora); return f.getFullYear() === año && f.getMonth() === mes; }).length === 0 && (
-              <p className="text-gray-600 text-sm text-center py-6">Sin mantenimientos este mes</p>
-            )}
+          </div>
+
+          {/* Lista del mes — Reportes */}
+          <div className="mt-5">
+            <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">📋 Reportes del mes</p>
+            <div className="space-y-2">
+              {reportesMes.map((r) => (
+                <div key={r._id} className="card flex items-center gap-3 cursor-pointer" onClick={() => navigate('/admin/reportes')}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">🏪 {r.puntoDeVenta?.nombre}</p>
+                    <p className="text-gray-400 text-xs truncate">👤 {r.usuario?.nombre}</p>
+                    <p className="text-gray-500 text-xs">
+                      📅 {new Date(r.fechaVisita).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                    {r.descripcion && (
+                      <p className="text-gray-500 text-xs truncate italic mt-0.5">"{r.descripcion}"</p>
+                    )}
+                  </div>
+                  <span className={`text-[10px] px-2 py-1 rounded-full font-semibold shrink-0 ${colorEstado(r.estado)}`}>
+                    {emojiEstado[r.estado]} {r.estado}
+                  </span>
+                </div>
+              ))}
+              {reportesMes.length === 0 && (
+                <p className="text-gray-600 text-sm text-center py-4">Sin reportes este mes</p>
+              )}
+            </div>
           </div>
         </div>
       )}

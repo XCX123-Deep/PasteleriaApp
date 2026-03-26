@@ -4,6 +4,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import api from '../../api/client';
 import { getMediaUrl } from '../../api/mediaUrl';
 import { EstadoBadge, EstadoSelector } from '../../components/EstadoStatus';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 /* ── Lightbox ─────────────────────────────────────────────────────────────── */
@@ -64,6 +65,7 @@ export default function ReporteForm() {
   const { puntoId } = useParams();
   const navigate = useNavigate();
   const sigRef = useRef(null);
+  const { isAdmin } = useAuth();
 
   const [punto, setPunto] = useState(null);
   const [reporteExistente, setReporteExistente] = useState(null);
@@ -244,7 +246,14 @@ export default function ReporteForm() {
           {/* Estado */}
           <div>
             <label className="label text-base font-semibold text-white mb-3 block">Estado del reporte</label>
-            <EstadoSelector value={form.estado} onChange={(e) => setForm({ ...form, estado: e })} />
+            {isAdmin() ? (
+              <EstadoSelector value={form.estado} onChange={(e) => setForm({ ...form, estado: e })} />
+            ) : (
+              <div className="flex items-center gap-3">
+                <EstadoBadge estado={form.estado} />
+                <p className="text-gray-500 text-xs">El estado lo asigna el administrador</p>
+              </div>
+            )}
           </div>
 
           {/* Fecha */}

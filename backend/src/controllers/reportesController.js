@@ -1,8 +1,17 @@
 const Reporte = require('../models/Reporte');
 const PuntoDeVenta = require('../models/PuntoDeVenta');
-const path = require('path');
-const fs = require('fs');
+const Usuario = require('../models/Usuario');
 const { cloudinary } = require('../middlewares/upload');
+const { enviarEmailReporte } = require('../services/emailService');
+
+// Obtiene los emails de todos los admins activos en la BD
+const getEmailsAdmins = async () => {
+  const admins = await Usuario.find(
+    { rol: { $in: ['ADMIN', 'SUPER_ADMIN'] }, activo: true },
+    'email'
+  ).lean();
+  return admins.map((a) => a.email);
+};
 
 // GET /api/reportes — con filtros
 const listarReportes = async (req, res, next) => {
@@ -82,6 +91,11 @@ const crearReporte = async (req, res, next) => {
       { path: 'usuario', select: 'nombre email' },
     ]);
 
+    // Notificar a los admins — fire-and-forget
+    getEmailsAdmins()
+      .then((emails) => enviarEmailReporte(populado, 'creado', emails))
+      .catch(() => {});
+
     res.status(201).json({ success: true, message: 'Reporte creado exitosamente.', data: populado });
   } catch (error) {
     next(error);
@@ -100,7 +114,8 @@ const actualizarReporte = async (req, res, next) => {
     }
 
     const { estado, descripcion, fechaVisita } = req.body;
-    if (estado) reporte.estado = estado.toUpperCase();
+    // Solo ADMIN puede cambiar el estado del reporte
+    if (estado && req.user.rol === 'ADMIN') reporte.estado = estado.toUpperCase();
     if (descripcion !== undefined) reporte.descripcion = descripcion;
     if (fechaVisita) reporte.fechaVisita = new Date(fechaVisita);
 
@@ -118,6 +133,11 @@ const actualizarReporte = async (req, res, next) => {
       { path: 'puntoDeVenta', select: 'nombre ciudad' },
       { path: 'usuario', select: 'nombre email' },
     ]);
+
+    // Notificar a los admins — fire-and-forget
+    getEmailsAdmins()
+      .then((emails) => enviarEmailReporte(populado, 'actualizado', emails))
+      .catch(() => {});
 
     res.json({ success: true, message: 'Reporte actualizado.', data: populado });
   } catch (error) {
