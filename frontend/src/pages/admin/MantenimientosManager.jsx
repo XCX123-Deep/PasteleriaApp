@@ -37,7 +37,7 @@ export default function MantenimientosManager() {
       ]);
       setMantenimientos(mRes.data.data);
       setPuntos(pRes.data.data);
-      setUsuarios(uRes.data.data.filter((u) => u.activo));
+      setUsuarios(uRes.data.data.filter((u) => u.activo && u.rol === 'TECNICO'));
     } catch { toast.error('Error cargando datos'); }
     finally { setLoading(false); }
   };
@@ -181,10 +181,13 @@ export default function MantenimientosManager() {
                 </select>
               </div>
               <div>
-                <label className="label">Visitador asignado *</label>
+                <label className="label">Técnico asignado *</label>
                 <select className="input" value={form.visitador} onChange={(e) => setForm({ ...form, visitador: e.target.value })}>
-                  <option value="">Seleccionar...</option>
-                  {usuarios.map((u) => <option key={u._id} value={u._id}>{u.nombre} ({u.rol})</option>)}
+                  <option value="">Seleccionar técnico...</option>
+                  {usuarios.length === 0
+                    ? <option disabled>No hay técnicos activos</option>
+                    : usuarios.map((u) => <option key={u._id} value={u._id}>{u.nombre}</option>)
+                  }
                 </select>
               </div>
               <div>
