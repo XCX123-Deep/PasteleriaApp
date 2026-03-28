@@ -197,18 +197,16 @@ export default function PuntosManager() {
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white text-xl">✕</button>
             </div>
             <form onSubmit={handleSave} className="space-y-3">
+              {/* Campos básicos */}
               {[
                 { key: 'nombre', label: 'Nombre del punto *', placeholder: 'Ej: Pastelería Centro' },
                 { key: 'direccion', label: 'Dirección *', placeholder: 'Calle 123 #45-67' },
                 { key: 'ciudad', label: 'Ciudad *', placeholder: 'Bogotá' },
-                { key: 'contactoNombre', label: 'Nombre de contacto', placeholder: 'Juan García' },
-                { key: 'contactoTelefono', label: 'Teléfono de contacto', placeholder: '300 000 0000', type: 'tel' },
-                { key: 'contactoEmail', label: 'Email de contacto', placeholder: 'contacto@punto.com', type: 'email' },
               ].map((field) => (
                 <div key={field.key}>
                   <label className="label">{field.label}</label>
                   <input
-                    type={field.type || 'text'}
+                    type="text"
                     className="input"
                     placeholder={field.placeholder}
                     value={form[field.key]}
@@ -216,6 +214,66 @@ export default function PuntosManager() {
                   />
                 </div>
               ))}
+
+              {/* Contacto — Selector de Líderes */}
+              <div>
+                <label className="label">Líder / Nombre de contacto</label>
+                <select
+                  className="input"
+                  value={
+                    // Busca si el nombre actual coincide con algún líder
+                    usuarios.filter((u) => u.rol === 'LIDER').find((u) => u.nombre === form.contactoNombre)?._id || ''
+                  }
+                  onChange={(e) => {
+                    const lider = usuarios.find((u) => u._id === e.target.value);
+                    if (lider) {
+                      setForm({ ...form, contactoNombre: lider.nombre, contactoEmail: lider.email });
+                    } else {
+                      setForm({ ...form, contactoNombre: '', contactoEmail: '' });
+                    }
+                  }}
+                >
+                  <option value="">Seleccionar líder...</option>
+                  {usuarios
+                    .filter((u) => u.rol === 'LIDER')
+                    .map((u) => (
+                      <option key={u._id} value={u._id}>
+                        {u.nombre}
+                      </option>
+                    ))}
+                </select>
+                {usuarios.filter((u) => u.rol === 'LIDER').length === 0 && (
+                  <p className="text-gray-600 text-xs mt-1">No hay líderes activos creados aún</p>
+                )}
+              </div>
+
+              {/* Email — autocompletado al elegir líder, también editable */}
+              <div>
+                <label className="label">Email de contacto</label>
+                <input
+                  type="email"
+                  className="input"
+                  placeholder="Se completa al elegir un líder"
+                  value={form.contactoEmail}
+                  onChange={(e) => setForm({ ...form, contactoEmail: e.target.value })}
+                />
+                {form.contactoEmail && (
+                  <p className="text-gray-500 text-xs mt-1">📧 {form.contactoEmail}</p>
+                )}
+              </div>
+
+              {/* Teléfono */}
+              <div>
+                <label className="label">Teléfono de contacto</label>
+                <input
+                  type="tel"
+                  className="input"
+                  placeholder="300 000 0000"
+                  value={form.contactoTelefono}
+                  onChange={(e) => setForm({ ...form, contactoTelefono: e.target.value })}
+                />
+              </div>
+
               <div>
                 <label className="label">Notas adicionales</label>
                 <textarea
