@@ -4,7 +4,7 @@ const Mantenimiento = require('../models/Mantenimiento');
 const listar = async (req, res, next) => {
   try {
     const filtro = { activo: true };
-    if (req.user.rol !== 'ADMIN') filtro.visitador = req.user._id;
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol)) filtro.visitador = req.user._id;
 
     const { completado, desde, hasta } = req.query;
     if (completado !== undefined) filtro.completado = completado === 'true';

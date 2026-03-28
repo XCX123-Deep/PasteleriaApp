@@ -58,26 +58,41 @@ const listarReportes = async (req, res, next) => {
   }
 };
 
-// GET /api/reportes/:id
+// GET /api/reportes/:id — valida acceso por rol
 const obtenerReporte = async (req, res, next) => {
   try {
     const reporte = await Reporte.findById(req.params.id)
       .populate('puntoDeVenta', 'nombre ciudad direccion contactoNombre contactoTelefono')
-      .populate('usuario', 'nombre email rol');
+      .populate('usuario', 'nombre email rol')
+      .populate('novedades.usuario', 'nombre email rol');
     if (!reporte) return res.status(404).json({ success: false, message: 'Reporte no encontrado.' });
+
+    // No-admin: solo ve reportes de sus puntos asignados o propios
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol)) {
+      const esPropietario = reporte.usuario._id.toString() === req.user._id.toString();
+      if (!esPropietario) {
+        // Verificar que el punto esté asignado al usuario
+        const punto = await PuntoDeVenta.findOne({
+          _id: reporte.puntoDeVenta._id,
+          usuariosAsignados: req.user._id,
+        });
+        if (!punto) return res.status(403).json({ success: false, message: 'No tienes acceso a este reporte.' });
+      }
+    }
+
     res.json({ success: true, data: reporte });
   } catch (error) {
     next(error);
   }
 };
 
-// POST /api/reportes — Visitador/Líder crea reporte
+// POST /api/reportes — Visitador/Líder/Técnico crea reporte
 const crearReporte = async (req, res, next) => {
   try {
     const { puntoDeVenta, estado, descripcion, fechaVisita } = req.body;
 
-    // Verificar que el punto esté asignado al usuario (si no es ADMIN)
-    if (req.user.rol !== 'ADMIN') {
+    // ADMIN y SUPER_ADMIN pueden crear en cualquier punto
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol)) {
       const punto = await PuntoDeVenta.findOne({ _id: puntoDeVenta, usuariosAsignados: req.user._id });
       if (!punto) {
         return res.status(403).json({ success: false, message: 'No tienes acceso a este punto de venta.' });

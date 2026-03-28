@@ -72,7 +72,20 @@ export default function AdminReportes() {
         {[['ROJO', '🔴', 'red'], ['NARANJA', '🟠', 'orange'], ['VERDE', '🟢', 'green']].map(([e, icon, c]) => (
           <button
             key={e}
-            onClick={() => setFiltros(f => ({ ...f, estado: f.estado === e ? '' : e }))}
+            onClick={() => {
+              const next = filtros.estado === e ? '' : e;
+              setFiltros(f => ({ ...f, estado: next }));
+              // Recargar aplicando el nuevo filtro de estado inmediatamente
+              setLoading(true);
+              const params = {};
+              if (next) params.estado = next;
+              if (filtros.desde) params.desde = filtros.desde;
+              if (filtros.hasta) params.hasta = filtros.hasta;
+              api.get('/reportes', { params })
+                .then(({ data }) => setReportes(data.data))
+                .catch(() => toast.error('Error cargando reportes'))
+                .finally(() => setLoading(false));
+            }}
             className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 ${filtros.estado === e ? `bg-${c}-900 text-${c}-300 border border-${c}-700` : 'bg-gray-800 text-gray-400'}`}
           >
             {icon} {estadoCount(e)}

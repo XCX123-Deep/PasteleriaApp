@@ -34,7 +34,7 @@ export default function ProximasVisitas() {
   return (
     <div className="min-h-screen bg-gray-950">
       <div className="page-header">
-        <button onClick={() => navigate('/mis-puntos')} className="text-gray-400 hover:text-white p-1">
+        <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white p-1">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
         <h1 className="font-bold text-white flex-1">📅 Próximas Visitas</h1>

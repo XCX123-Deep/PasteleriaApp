@@ -89,14 +89,14 @@ export default function LiderPunto() {
         {/* Visitadores asignados */}
         {punto?.usuariosAsignados?.length > 0 && (
           <div className="card space-y-2">
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Visitadores asignados</p>
+            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Usuarios asignados</p>
             {punto.usuariosAsignados.map((u) => (
               <div key={u._id} className="flex items-center gap-2">
                 <div className="w-7 h-7 bg-indigo-900 rounded-full flex items-center justify-center text-xs font-bold text-indigo-300">
                   {u.nombre?.[0]?.toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-white text-sm">{u.nombre}</p>
+                  <p className="text-white text-sm">{u.nombre} <span className="text-gray-600 text-xs">({u.rol})</span></p>
                   <p className="text-gray-500 text-xs">{u.email}</p>
                 </div>
               </div>
