@@ -59,7 +59,7 @@ export default function TecnicoMantenimiento() {
     setPreviews((prev) => prev.filter((_, idx) => idx !== i));
   };
 
-  // ── Canvas firma ───────────────────────────────────────────────
+  // ── Canvas firma ─ con passive:false para poder hacer preventDefault ───────
   const getPos = (e, canvas) => {
     const rect = canvas.getBoundingClientRect();
     const src = e.touches ? e.touches[0] : e;
@@ -67,13 +67,11 @@ export default function TecnicoMantenimiento() {
   };
 
   const startDraw = (e) => {
-    e.preventDefault();
     drawing.current = true;
     lastPos.current = getPos(e, canvasRef.current);
   };
 
-  const draw = (e) => {
-    e.preventDefault();
+  const drawLine = (e) => {
     if (!drawing.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -89,6 +87,7 @@ export default function TecnicoMantenimiento() {
   };
 
   const endDraw = () => {
+    if (!drawing.current) return;
     drawing.current = false;
     setFirmaDataUrl(canvasRef.current.toDataURL('image/png'));
   };
@@ -98,6 +97,23 @@ export default function TecnicoMantenimiento() {
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
     setFirmaDataUrl(null);
   };
+
+  // Registrar touch events con passive:false para poder hacer preventDefault y evitar scroll
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onTouchStart = (e) => { e.preventDefault(); startDraw(e); };
+    const onTouchMove  = (e) => { e.preventDefault(); drawLine(e); };
+    const onTouchEnd   = (e) => { e.preventDefault(); endDraw(); };
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
+    canvas.addEventListener('touchend',   onTouchEnd,   { passive: false });
+    return () => {
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove',  onTouchMove);
+      canvas.removeEventListener('touchend',   onTouchEnd);
+    };
+  }, [mant]); // re-attach when mant loads
 
   // ── Guardar ────────────────────────────────────────────────────
   const handleGuardar = async () => {
@@ -159,9 +175,20 @@ export default function TecnicoMantenimiento() {
 
       <div className="p-4 space-y-5 pb-10">
 
-        {/* Info */}
-        <div className="card space-y-1">
-          <p className="text-brand-400 font-bold text-base">{mant.tipo}</p>
+        {/* Info + estado */}
+        <div className="card space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-brand-400 font-bold text-base flex-1">{mant.tipo}</p>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
+              mant.completado
+                ? 'bg-green-950 text-green-400 border border-green-700'
+                : new Date(mant.fechaHora) < new Date()
+                  ? 'bg-red-950 text-red-400 border border-red-700'
+                  : 'bg-yellow-950 text-yellow-400 border border-yellow-700'
+            }`}>
+              {mant.completado ? '✅ Completado' : new Date(mant.fechaHora) < new Date() ? '🔴 Vencido' : '🟡 Pendiente'}
+            </span>
+          </div>
           <p className="text-gray-400 text-sm">🏪 {mant.puntoDeVenta?.nombre} — {mant.puntoDeVenta?.ciudad}</p>
           <p className="text-gray-500 text-xs">📅 {fechaStr}</p>
           {mant.frecuencia && <p className="text-gray-600 text-xs">🔁 {mant.frecuencia}</p>}
@@ -270,12 +297,14 @@ export default function TecnicoMantenimiento() {
             <img src={firmaDataUrl} alt="Firma existente" className="w-full h-32 object-contain rounded-2xl bg-white border border-gray-700" />
           ) : null}
           <canvas
+          className="w-full rounded-2xl bg-gray-900 border border-gray-700 touch-none"
             ref={canvasRef}
             width={380}
             height={140}
-            className="w-full rounded-2xl bg-gray-900 border border-gray-700 touch-none"
-            onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
-            onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
+            onMouseDown={startDraw}
+            onMouseMove={drawLine}
+            onMouseUp={endDraw}
+            onMouseLeave={endDraw}
           />
           <p className="text-gray-600 text-xs text-center mt-1">Firma aquí con el dedo</p>
         </div>
