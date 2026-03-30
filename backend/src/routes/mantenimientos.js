@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { listar, crear, actualizar, eliminar, completarMantenimiento } = require('../controllers/mantenimientosController');
 const { verifyToken, requireRole } = require('../middlewares/auth');
-const { upload } = require('../middlewares/upload');
+const upload = require('../middlewares/upload');
 
 router.use(verifyToken);
 
