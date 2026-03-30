@@ -14,20 +14,23 @@ const { verifyToken, requireRole } = require('./middlewares/auth');
 
 const app = express();
 
-// CORS — en producción acepta las URLs de FRONTEND_URL (separadas por coma)
+// CORS — acepta FRONTEND_URL (separado por comas) o cualquier *.vercel.app como fallback
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map((u) => u.trim())
   : [];
 
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? (origin, cb) => {
-        // Permitir requests sin origin (Postman, curl, Vercel functions internas)
-        if (!origin) return cb(null, true);
-        if (allowedOrigins.includes(origin)) return cb(null, true);
-        cb(new Error(`CORS: origen no permitido → ${origin}`));
-      }
-    : true,
+  origin: (origin, cb) => {
+    // Sin origin → Postman, curl, Vercel serverless interno
+    if (!origin) return cb(null, true);
+    // Lista explícita configurada
+    if (allowedOrigins.length > 0 && allowedOrigins.includes(origin)) return cb(null, true);
+    // Fallback: cualquier subdominio de vercel.app (mismo proyecto)
+    if (origin.endsWith('.vercel.app')) return cb(null, true);
+    // Desarrollo local
+    if (origin.startsWith('http://localhost')) return cb(null, true);
+    cb(new Error(`CORS: origen no permitido → ${origin}`));
+  },
   credentials: true,
 };
 app.use(cors(corsOptions));
