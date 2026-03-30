@@ -94,7 +94,7 @@ async function enviarEmailReporte(reporte, accion = 'creado', to) {
               </tr>
               <tr>
                 <td style="padding:8px 0;border-bottom:1px solid #2d2d2f;">
-                  <span style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Visitador</span><br>
+                  <span style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Asesor</span><br>
                   <span style="color:#f9fafb;font-size:15px;">👤 ${visitador}</span>
                 </td>
               </tr>

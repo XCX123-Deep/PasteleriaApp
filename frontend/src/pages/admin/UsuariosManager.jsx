@@ -57,7 +57,7 @@ export default function UsuariosManager() {
     } catch { toast.error('Error'); }
   };
 
-  const rolColors = { ADMIN: 'text-purple-400 bg-purple-950 border-purple-800', LIDER: 'text-blue-400 bg-blue-950 border-blue-800', TECNICO: 'text-teal-400 bg-teal-950 border-teal-800', VISITADOR: 'text-gray-400 bg-gray-800 border-gray-700' };
+  const rolColors = { ADMIN: 'text-purple-400 bg-purple-950 border-purple-800', LIDER: 'text-blue-400 bg-blue-950 border-blue-800', TECNICO: 'text-teal-400 bg-teal-950 border-teal-800', VISITADOR: 'text-violet-300 bg-violet-950 border-violet-800' };
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -85,7 +85,7 @@ export default function UsuariosManager() {
                   <p className="font-semibold text-white text-sm truncate">{u.nombre}</p>
                   <span className={`text-xs px-2 py-0.5 rounded-full border font-medium flex-shrink-0 ${rolColors[u.rol]}`}>{u.rol}</span>
                 </div>
-                <p className="text-gray-400 text-xs truncate">{u.email}</p>
+              <p className="text-xs text-gray-500">{u.email}</p>
                 {u.telefono && <p className="text-gray-500 text-xs">📞 {u.telefono}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
@@ -114,7 +114,7 @@ export default function UsuariosManager() {
               <div>
                 <label className="label">Rol</label>
                 <select className="input" value={form.rol} onChange={(e) => setForm({ ...form, rol: e.target.value })}>
-                  <option value="VISITADOR">Visitador</option>
+                  <option value="VISITADOR">Asesor</option>
                   <option value="LIDER">Líder</option>
                   <option value="TECNICO">Técnico</option>
                   <option value="ADMIN">Administrador</option>

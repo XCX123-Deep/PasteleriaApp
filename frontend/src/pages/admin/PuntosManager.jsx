@@ -161,7 +161,7 @@ export default function PuntosManager() {
               {/* Usuarios asignados */}
               <div className="flex flex-wrap gap-1.5">
                 {punto.usuariosAsignados.length === 0 ? (
-                  <span className="text-gray-600 text-xs">Sin visitadores asignados</span>
+                  <span className="text-gray-600 text-xs">Sin asesores asignados</span>
                 ) : (
                   punto.usuariosAsignados.map((u) => (
                     <span key={u._id} className="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded-lg">
@@ -297,7 +297,7 @@ export default function PuntosManager() {
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end" onClick={() => setShowAsignModal(null)}>
           <div className="bg-gray-900 rounded-t-3xl w-full max-h-[70vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-white">Asignar visitadores</h2>
+              <h2 className="text-lg font-bold text-white">Asignar usuarios</h2>
               <button onClick={() => setShowAsignModal(null)} className="text-gray-400 text-xl">✕</button>
             </div>
             <p className="text-gray-400 text-sm mb-4">📍 {showAsignModal.nombre}</p>

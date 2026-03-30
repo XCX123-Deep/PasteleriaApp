@@ -141,7 +141,7 @@ export default function MantenimientosManager() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white text-sm truncate">{m.tipo}</p>
                     <p className="text-gray-400 text-xs truncate">🏪 {m.puntoDeVenta?.nombre}</p>
-                    <p className="text-gray-500 text-xs">👤 {m.visitador?.nombre}</p>
+                    <p className="text-gray-500 text-xs">🔧 {m.visitador?.nombre}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${prox.color}`}>{prox.texto}</span>
