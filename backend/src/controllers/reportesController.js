@@ -136,7 +136,7 @@ const crearReporte = async (req, res, next) => {
     ]);
 
     // Notificar a admins y líderes del punto — fire-and-forget
-    getDestinatarios(puntoId)
+    getDestinatarios(puntoDeVenta)
       .then((emails) => enviarEmailReporte(populado, 'creado', emails))
       .catch(() => {});
 
