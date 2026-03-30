@@ -111,11 +111,9 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="page-header justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center">
-            <span className="text-lg">🧁</span>
-          </div>
+          <img src="/logo.png" alt="MAINTDV" className="w-9 h-9 rounded-xl object-contain bg-white p-0.5" />
           <div>
-            <h1 className="font-bold text-white text-sm leading-tight">Panel Admin</h1>
+            <h1 className="font-bold text-white text-sm leading-tight tracking-wide">MAINTDV</h1>
             <p className="text-gray-400 text-xs">{user?.nombre}</p>
           </div>
         </div>

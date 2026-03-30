@@ -66,8 +66,8 @@ async function enviarEmailReporte(reporte, accion = 'creado', to) {
         <!-- Header -->
         <tr>
           <td style="background:#111827;padding:24px 28px;text-align:center;">
-            <p style="margin:0;font-size:28px;">🎂</p>
-            <h1 style="margin:8px 0 4px;color:#f9fafb;font-size:18px;font-weight:700;">Pastelería App</h1>
+            <p style="margin:0;font-size:28px;">⚙️</p>
+            <h1 style="margin:8px 0 4px;color:#f9fafb;font-size:18px;font-weight:700;">MAINTDV</h1>
             <p style="margin:0;color:#9ca3af;font-size:13px;">${accionLabel}</p>
           </td>
         </tr>
@@ -118,7 +118,7 @@ async function enviarEmailReporte(reporte, accion = 'creado', to) {
         <!-- Footer -->
         <tr>
           <td style="background:#111827;padding:16px 28px;text-align:center;">
-            <p style="margin:0;color:#4b5563;font-size:12px;">Este correo fue generado automáticamente por Pastelería App.</p>
+            <p style="margin:0;color:#4b5563;font-size:12px;">Este correo fue generado automáticamente por MAINTDV.</p>
           </td>
         </tr>
 
@@ -129,7 +129,7 @@ async function enviarEmailReporte(reporte, accion = 'creado', to) {
 </html>`;
 
     await getTransporter().sendMail({
-      from: `"Pastelería App 🎂" <${process.env.SMTP_USER}>`,
+      from: `"MAINTDV ⚙️" <${process.env.SMTP_USER}>`,
       to: destino,
       subject: `${info.emoji} Reporte ${accion}: ${punto} — Estado ${info.label}`,
       html,
