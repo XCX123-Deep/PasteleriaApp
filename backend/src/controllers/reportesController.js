@@ -32,25 +32,28 @@ const listarReportes = async (req, res, next) => {
     const { estado, puntoDeVenta, usuario, desde, hasta } = req.query;
     const filtro = {};
 
-    // Filtro por rol:
-    // ADMIN/SUPER_ADMIN → sin restricción
-    // LIDER/TECNICO     → todos los reportes de sus puntos asignados
-    // VISITADOR         → solo sus propios reportes
-    if (req.user.rol === 'LIDER' || req.user.rol === 'TECNICO') {
+    if (req.user.rol === 'LIDER') {
       const puntosAsignados = await PuntoDeVenta.find(
-        { usuariosAsignados: req.user._id, activo: true },
-        '_id'
+        { usuariosAsignados: req.user._id, activo: true }, '_id'
       ).lean();
       filtro.puntoDeVenta = { $in: puntosAsignados.map((p) => p._id) };
-    } else if (req.user.rol !== 'ADMIN') {
+    } else if (req.user.rol === 'TECNICO') {
+      // Técnico ve: reportes de sus puntos + reportes donde está asignado como técnico
+      const puntosAsignados = await PuntoDeVenta.find(
+        { usuariosAsignados: req.user._id, activo: true }, '_id'
+      ).lean();
+      filtro.$or = [
+        { puntoDeVenta: { $in: puntosAsignados.map((p) => p._id) } },
+        { tecnicoAsignado: req.user._id },
+      ];
+    } else if (!['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol)) {
       filtro.usuario = req.user._id;
     }
 
     if (estado) filtro.estado = estado.toUpperCase();
     if (puntoDeVenta) filtro.puntoDeVenta = puntoDeVenta;
-    // ADMIN puede filtrar por cualquier usuario; los demás solo por su propio ID
     if (usuario) {
-      if (req.user.rol === 'ADMIN' || usuario === req.user._id.toString()) {
+      if (['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol) || usuario === req.user._id.toString()) {
         filtro.usuario = usuario;
       }
     }
@@ -63,12 +66,11 @@ const listarReportes = async (req, res, next) => {
     const reportes = await Reporte.find(filtro)
       .populate('puntoDeVenta', 'nombre ciudad direccion')
       .populate('usuario', 'nombre email rol')
+      .populate('tecnicoAsignado', 'nombre email')
       .sort({ fechaVisita: -1 });
 
     res.json({ success: true, data: reportes });
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 };
 
 // GET /api/reportes/:id — valida acceso por rol
@@ -150,48 +152,57 @@ const actualizarReporte = async (req, res, next) => {
     const reporte = await Reporte.findById(req.params.id);
     if (!reporte) return res.status(404).json({ success: false, message: 'Reporte no encontrado.' });
 
-    // Solo el dueño, ADMIN o TÉCNICO (en sus puntos) puede editar
-    const puedeEditar =
-      req.user.rol === 'ADMIN' ||
-      req.user.rol === 'SUPER_ADMIN' ||
-      req.user.rol === 'TECNICO' ||
-      reporte.usuario.toString() === req.user._id.toString();
-    if (!puedeEditar) {
+    const isAdmin   = ['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol);
+    const esDueño   = reporte.usuario.toString() === req.user._id.toString();
+    const esTecAsig = reporte.tecnicoAsignado?.toString() === req.user._id.toString();
+
+    // Solo admin, dueño o técnico asignado pueden editar
+    if (!isAdmin && !esDueño && !esTecAsig) {
       return res.status(403).json({ success: false, message: 'No tienes permiso para editar este reporte.' });
     }
 
     const { estado, descripcion, fechaVisita } = req.body;
-    // ADMIN, SUPER_ADMIN y TÉCNICO pueden cambiar el estado
-    if (estado && ['ADMIN', 'SUPER_ADMIN', 'TECNICO'].includes(req.user.rol)) {
+    // Solo admin o técnico asignado pueden cambiar el estado
+    if (estado && (isAdmin || esTecAsig)) {
       reporte.estado = estado.toUpperCase();
     }
-    if (descripcion !== undefined) reporte.descripcion = descripcion;
-    if (fechaVisita) reporte.fechaVisita = new Date(fechaVisita);
+    if (descripcion !== undefined && (isAdmin || esDueño)) reporte.descripcion = descripcion;
+    if (fechaVisita && isAdmin) reporte.fechaVisita = new Date(fechaVisita);
 
-    // Agregar nuevas fotos si se suben
-    if (req.files?.fotos) {
-      req.files.fotos.forEach((f) => reporte.fotos.push(f.path));
-    }
-    // Reemplazar firma si se sube
-    if (req.files?.firma) {
-      reporte.firma = req.files.firma[0].path;
-    }
+    if (req.files?.fotos) req.files.fotos.forEach((f) => reporte.fotos.push(f.path));
+    if (req.files?.firma) reporte.firma = req.files.firma[0].path;
 
     await reporte.save();
     const populado = await reporte.populate([
       { path: 'puntoDeVenta', select: 'nombre ciudad' },
       { path: 'usuario', select: 'nombre email' },
+      { path: 'tecnicoAsignado', select: 'nombre email' },
     ]);
 
-    // Notificar a admins y líderes del punto — fire-and-forget
     getDestinatarios(populado.puntoDeVenta._id)
       .then((emails) => enviarEmailReporte(populado, 'actualizado', emails))
       .catch(() => {});
 
     res.json({ success: true, message: 'Reporte actualizado.', data: populado });
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
+};
+
+// PUT /api/reportes/:id/tecnico — Solo ADMIN asigna técnico
+const asignarTecnico = async (req, res, next) => {
+  try {
+    const { tecnicoId } = req.body;
+    const reporte = await Reporte.findById(req.params.id);
+    if (!reporte) return res.status(404).json({ success: false, message: 'Reporte no encontrado.' });
+
+    reporte.tecnicoAsignado = tecnicoId || null;
+    await reporte.save();
+    const populado = await reporte.populate([
+      { path: 'puntoDeVenta', select: 'nombre ciudad' },
+      { path: 'usuario', select: 'nombre email' },
+      { path: 'tecnicoAsignado', select: 'nombre email' },
+    ]);
+    res.json({ success: true, message: 'Técnico asignado.', data: populado });
+  } catch (error) { next(error); }
 };
 
 // DELETE /api/reportes/:id — Solo ADMIN
@@ -257,4 +268,4 @@ const agregarNovedad = async (req, res, next) => {
   }
 };
 
-module.exports = { listarReportes, obtenerReporte, crearReporte, actualizarReporte, eliminarReporte, agregarNovedad };
+module.exports = { listarReportes, obtenerReporte, crearReporte, actualizarReporte, eliminarReporte, agregarNovedad, asignarTecnico };

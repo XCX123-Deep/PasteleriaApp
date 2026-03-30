@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-  listarReportes, obtenerReporte, crearReporte, actualizarReporte, eliminarReporte, agregarNovedad,
+  listarReportes, obtenerReporte, crearReporte, actualizarReporte, eliminarReporte, agregarNovedad, asignarTecnico,
 } = require('../controllers/reportesController');
 const { verifyToken, requireRole } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
@@ -10,24 +10,10 @@ router.use(verifyToken);
 
 router.get('/', listarReportes);
 router.get('/:id', obtenerReporte);
-
-// Crear reporte con archivos (fotos[] y firma)
-router.post(
-  '/',
-  upload.fields([{ name: 'fotos', maxCount: 5 }, { name: 'firma', maxCount: 1 }]),
-  crearReporte
-);
-
-// Actualizar reporte con archivos opcionales
-router.put(
-  '/:id',
-  upload.fields([{ name: 'fotos', maxCount: 5 }, { name: 'firma', maxCount: 1 }]),
-  actualizarReporte
-);
-
-// Novedad — TÉCNICO y ADMIN
-router.post('/:id/novedad', requireRole('TECNICO', 'ADMIN'), agregarNovedad);
-
-router.delete('/:id', requireRole('ADMIN'), eliminarReporte);
+router.post('/', upload.fields([{ name: 'fotos', maxCount: 5 }, { name: 'firma', maxCount: 1 }]), crearReporte);
+router.put('/:id', upload.fields([{ name: 'fotos', maxCount: 5 }, { name: 'firma', maxCount: 1 }]), actualizarReporte);
+router.put('/:id/tecnico', requireRole('ADMIN', 'SUPER_ADMIN'), asignarTecnico);
+router.post('/:id/novedad', requireRole('TECNICO', 'ADMIN', 'SUPER_ADMIN'), agregarNovedad);
+router.delete('/:id', requireRole('ADMIN', 'SUPER_ADMIN'), eliminarReporte);
 
 module.exports = router;

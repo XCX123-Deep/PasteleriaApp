@@ -43,6 +43,11 @@ const reporteSchema = new mongoose.Schema(
         fecha: { type: Date, default: Date.now },
       },
     ],
+    tecnicoAsignado: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Usuario',
+      default: null,
+    },
   },
   { timestamps: true }
 );
