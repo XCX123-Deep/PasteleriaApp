@@ -57,7 +57,8 @@ export default function UsuariosManager() {
     } catch { toast.error('Error'); }
   };
 
-  const rolColors = { ADMIN: 'text-purple-400 bg-purple-950 border-purple-800', LIDER: 'text-blue-400 bg-blue-950 border-blue-800', TECNICO: 'text-teal-400 bg-teal-950 border-teal-800', VISITADOR: 'text-violet-300 bg-violet-950 border-violet-800' };
+  const rolColors  = { ADMIN: 'text-purple-400 bg-purple-950 border-purple-800', LIDER: 'text-blue-400 bg-blue-950 border-blue-800', TECNICO: 'text-teal-400 bg-teal-950 border-teal-800', VISITADOR: 'text-violet-300 bg-violet-950 border-violet-800', SUPER_ADMIN: 'text-pink-400 bg-pink-950 border-pink-800' };
+  const rolLabels = { VISITADOR: 'Asesor', LIDER: 'Líder', TECNICO: 'Técnico', ADMIN: 'Admin', SUPER_ADMIN: 'Super Admin' };
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -83,7 +84,7 @@ export default function UsuariosManager() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-white text-sm truncate">{u.nombre}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full border font-medium flex-shrink-0 ${rolColors[u.rol]}`}>{u.rol}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full border font-medium flex-shrink-0 ${rolColors[u.rol]}`}>{rolLabels[u.rol] || u.rol}</span>
                 </div>
               <p className="text-xs text-gray-500">{u.email}</p>
                 {u.telefono && <p className="text-gray-500 text-xs">📞 {u.telefono}</p>}
