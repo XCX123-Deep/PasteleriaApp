@@ -4,13 +4,26 @@ const Usuario = require('../models/Usuario');
 const { cloudinary } = require('../middlewares/upload');
 const { enviarEmailReporte } = require('../services/emailService');
 
-// Obtiene los emails de todos los admins activos en la BD
+// Emails de todos los admins activos
 const getEmailsAdmins = async () => {
   const admins = await Usuario.find(
     { rol: { $in: ['ADMIN', 'SUPER_ADMIN'] }, activo: true },
     'email'
   ).lean();
   return admins.map((a) => a.email);
+};
+
+// Emails de admins + líderes asignados al punto (sin duplicados)
+const getDestinatarios = async (puntoId) => {
+  const [admins, punto] = await Promise.all([
+    Usuario.find({ rol: { $in: ['ADMIN', 'SUPER_ADMIN'] }, activo: true }, 'email').lean(),
+    PuntoDeVenta.findById(puntoId).populate('usuariosAsignados', 'email rol').lean(),
+  ]);
+  const emailsLideres = (punto?.usuariosAsignados || [])
+    .filter((u) => u.rol === 'LIDER')
+    .map((u) => u.email);
+  const todos = [...new Set([...admins.map((a) => a.email), ...emailsLideres])];
+  return todos.filter(Boolean);
 };
 
 // GET /api/reportes — con filtros
@@ -120,8 +133,8 @@ const crearReporte = async (req, res, next) => {
       { path: 'usuario', select: 'nombre email' },
     ]);
 
-    // Notificar a los admins — fire-and-forget
-    getEmailsAdmins()
+    // Notificar a admins y líderes del punto — fire-and-forget
+    getDestinatarios(puntoId)
       .then((emails) => enviarEmailReporte(populado, 'creado', emails))
       .catch(() => {});
 
@@ -170,8 +183,8 @@ const actualizarReporte = async (req, res, next) => {
       { path: 'usuario', select: 'nombre email' },
     ]);
 
-    // Notificar a los admins — fire-and-forget
-    getEmailsAdmins()
+    // Notificar a admins y líderes del punto — fire-and-forget
+    getDestinatarios(populado.puntoDeVenta._id)
       .then((emails) => enviarEmailReporte(populado, 'actualizado', emails))
       .catch(() => {});
 
@@ -225,9 +238,18 @@ const agregarNovedad = async (req, res, next) => {
     reporte.novedades.push({ texto: texto.trim(), usuario: req.user._id });
     await reporte.save();
 
-    // Populate la última novedad para devolverla
-    await reporte.populate('novedades.usuario', 'nombre email rol');
+    // Poblar para email y respuesta
+    await reporte.populate([
+      { path: 'puntoDeVenta', select: 'nombre ciudad' },
+      { path: 'usuario', select: 'nombre email' },
+      { path: 'novedades.usuario', select: 'nombre email rol' },
+    ]);
     const ultima = reporte.novedades[reporte.novedades.length - 1];
+
+    // Notificar a admins y líderes del punto — fire-and-forget
+    getDestinatarios(reporte.puntoDeVenta._id)
+      .then((emails) => enviarEmailReporte(reporte, 'novedad', emails, { novedad: ultima.texto, autor: req.user.nombre }))
+      .catch(() => {});
 
     res.status(201).json({ success: true, message: 'Novedad registrada.', data: ultima });
   } catch (error) {

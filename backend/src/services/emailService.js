@@ -31,7 +31,7 @@ function getTransporter() {
  * @param {'creado'|'actualizado'} accion
  * @param {string|string[]} to - Email(s) de los administradores a notificar
  */
-async function enviarEmailReporte(reporte, accion = 'creado', to) {
+async function enviarEmailReporte(reporte, accion = 'creado', to, extras = {}) {
   // Resolver destinatario: parámetro > ADMIN_EMAIL de entorno > salir
   const destino = to
     ? (Array.isArray(to) ? to.filter(Boolean).join(', ') : to)
@@ -48,11 +48,15 @@ async function enviarEmailReporte(reporte, accion = 'creado', to) {
     const ciudad = reporte.puntoDeVenta?.ciudad || '';
     const visitador = reporte.usuario?.nombre || 'Desconocido';
     const fecha = new Date(reporte.fechaVisita).toLocaleString('es-CO', {
+
       weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
 
-    const accionLabel = accion === 'creado' ? 'Nuevo reporte creado' : 'Reporte actualizado';
+    const accionLabel =
+      accion === 'creado'  ? 'Nuevo reporte creado' :
+      accion === 'novedad' ? 'Nueva novedad registrada' :
+                             'Reporte actualizado';
 
     const html = `
 <!DOCTYPE html>
@@ -106,9 +110,18 @@ async function enviarEmailReporte(reporte, accion = 'creado', to) {
               </tr>
               ${reporte.descripcion ? `
               <tr>
-                <td style="padding:8px 0;">
+                <td style="padding:8px 0;border-bottom:1px solid #2d2d2f;">
                   <span style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px;">Descripción / Hallazgos</span><br>
                   <span style="color:#d1d5db;font-size:14px;line-height:1.5;">${reporte.descripcion}</span>
+                </td>
+              </tr>` : ''}
+              ${accion === 'novedad' && extras.novedad ? `
+              <tr>
+                <td style="padding:12px 0;">
+                  <div style="background:#1f2937;border-left:3px solid #22c55e;border-radius:0 8px 8px 0;padding:12px 16px;">
+                    <span style="color:#22c55e;font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Nueva novedad — ${extras.autor || 'Técnico'}</span><br>
+                    <span style="color:#f3f4f6;font-size:14px;line-height:1.6;margin-top:6px;display:block;">${extras.novedad}</span>
+                  </div>
                 </td>
               </tr>` : ''}
             </table>
@@ -131,7 +144,9 @@ async function enviarEmailReporte(reporte, accion = 'creado', to) {
     await getTransporter().sendMail({
       from: `"MAINTDV ⚙️" <${process.env.SMTP_USER}>`,
       to: destino,
-      subject: `${info.emoji} Reporte ${accion}: ${punto} — Estado ${info.label}`,
+      subject: accion === 'novedad'
+        ? `🔔 Nueva novedad: ${punto} — ${info.emoji} ${info.label}`
+        : `${info.emoji} Reporte ${accion}: ${punto} — Estado ${info.label}`,
       html,
     });
 
