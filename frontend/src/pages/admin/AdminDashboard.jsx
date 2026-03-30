@@ -136,11 +136,10 @@ export default function AdminDashboard() {
             <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
               📊 Trazabilidad
             </p>
-            <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-all duration-200 ${
-              expandido
-                ? 'bg-brand-950/60 border-brand-700 text-brand-300'
-                : 'bg-gray-800 border-gray-700 text-gray-500'
-            }`}>
+            <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-all duration-200 ${expandido
+              ? 'bg-brand-950/60 border-brand-700 text-brand-300'
+              : 'bg-gray-800 border-gray-700 text-gray-500'
+              }`}>
               <span>{expandido ? 'Ocultar' : 'Mostrar'}</span>
               <svg
                 className={`w-3.5 h-3.5 transition-transform duration-300 ${expandido ? 'rotate-180' : ''}`}

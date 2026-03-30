@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import SignatureCanvas from 'react-signature-canvas';
 import api from '../../api/client';
 import { getMediaUrl } from '../../api/mediaUrl';
@@ -64,12 +64,14 @@ function FotoThumb({ src, onRemove, onOpen, label }) {
 export default function ReporteForm() {
   const { puntoId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const sigRef = useRef(null);
   const { isAdmin, isTecnico, user } = useAuth();
 
   const [punto, setPunto] = useState(null);
   const [reporteExistente, setReporteExistente] = useState(null);
   const [form, setForm] = useState({ estado: 'ROJO', descripcion: '', fechaVisita: new Date().toISOString().split('T')[0] });
+  const [modoNuevo, setModoNuevo] = useState(() => !!location.state?.modoNuevo);
 
   // Fotos nuevas (File[]) y sus previews (dataURL[])
   const [fotos, setFotos] = useState([]);
@@ -83,7 +85,6 @@ export default function ReporteForm() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('reporte');
   const [historial, setHistorial] = useState([]);
-  const [modoNuevo, setModoNuevo] = useState(false); // forzar creación nueva
 
   // Lightbox
   const [lightboxSrc, setLightboxSrc] = useState(null);
