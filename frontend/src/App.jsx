@@ -22,6 +22,7 @@ import LiderPunto from './pages/lider/LiderPunto';
 import TecnicoDashboard from './pages/tecnico/TecnicoDashboard';
 import TecnicoPunto from './pages/tecnico/TecnicoPunto';
 import TecnicoMantenimiento from './pages/tecnico/TecnicoMantenimiento';
+import TecnicoCalendario from './pages/tecnico/TecnicoCalendario';
 
 // Pages — Visitador
 import MisPuntos from './pages/visitador/MisPuntos';
@@ -71,6 +72,7 @@ function App() {
           <Route path="/tecnico" element={<TecnicoRoute><TecnicoDashboard /></TecnicoRoute>} />
           <Route path="/tecnico/punto/:puntoId" element={<TecnicoRoute><TecnicoPunto /></TecnicoRoute>} />
           <Route path="/tecnico/mantenimiento/:mantenimientoId" element={<TecnicoRoute><TecnicoMantenimiento /></TecnicoRoute>} />
+          <Route path="/tecnico/calendario" element={<TecnicoRoute><TecnicoCalendario /></TecnicoRoute>} />
 
           {/* Visitador */}
           <Route path="/mis-puntos" element={<VisitadorRoute><MisPuntos /></VisitadorRoute>} />

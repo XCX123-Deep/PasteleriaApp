@@ -31,7 +31,7 @@ export default function TecnicoDashboard() {
         const [pRes, rRes, mRes] = await Promise.all([
           api.get('/puntos'),
           api.get('/reportes'),
-          api.get('/mantenimientos', { params: { completado: false } }),
+          api.get('/mantenimientos'),
         ]);
         setPuntos(pRes.data.data);
         // Mapa último reporte por punto
@@ -72,11 +72,22 @@ export default function TecnicoDashboard() {
             <p className="text-gray-400 text-xs">{user?.nombre}</p>
           </div>
         </div>
-        <button onClick={logout} className="text-gray-400 hover:text-red-400 transition-colors p-2 rounded-xl hover:bg-red-950/30">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/tecnico/calendario')}
+            className="text-gray-400 hover:text-brand-400 transition-colors p-2 rounded-xl hover:bg-brand-950/30"
+            title="Mi Calendario"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </button>
+          <button onClick={logout} className="text-gray-400 hover:text-red-400 transition-colors p-2 rounded-xl hover:bg-red-950/30">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="p-4 space-y-5 pb-8">
