@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -14,26 +13,37 @@ const { verifyToken, requireRole } = require('./middlewares/auth');
 
 const app = express();
 
-// CORS — acepta FRONTEND_URL (separado por comas) o cualquier *.vercel.app como fallback
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map((u) => u.trim())
-  : [];
+// ───── CORS ─────────────────────────────────────────────────────────────────
+// Manejamos CORS manualmente para garantizar compatibilidad en Vercel serverless.
+// Las peticiones OPTIONS (preflight) deben recibir los headers ANTES de llegar
+// a cualquier middleware de autenticación.
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '';
+  const allowed = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((u) => u.trim())
+    : [];
 
-const corsOptions = {
-  origin: (origin, cb) => {
-    // Sin origin → Postman, curl, Vercel serverless interno
-    if (!origin) return cb(null, true);
-    // Lista explícita configurada
-    if (allowedOrigins.length > 0 && allowedOrigins.includes(origin)) return cb(null, true);
-    // Fallback: cualquier subdominio de vercel.app (mismo proyecto)
-    if (origin.endsWith('.vercel.app')) return cb(null, true);
-    // Desarrollo local
-    if (origin.startsWith('http://localhost')) return cb(null, true);
-    cb(new Error(`CORS: origen no permitido → ${origin}`));
-  },
-  credentials: true,
-};
-app.use(cors(corsOptions));
+  const permitir =
+    !origin ||                              // curl, Postman, SSR interna
+    allowed.includes(origin) ||             // lista explícita
+    origin.endsWith('.vercel.app') ||       // cualquier deploy de Vercel
+    origin.startsWith('http://localhost');  // desarrollo local
+
+  if (permitir) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  }
+
+  // Responder 204 al preflight OPTIONS inmediatamente
+  if (req.method === 'OPTIONS') return res.status(204).end();
+
+  next();
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 
 // Body parsers
 app.use(express.json({ limit: '20mb' }));
