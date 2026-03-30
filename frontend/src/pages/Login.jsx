@@ -26,11 +26,13 @@ export default function Login() {
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-6">
       {/* Logo / Header */}
       <div className="mb-8 text-center">
-        <div className="w-20 h-20 bg-gradient-to-br from-brand-400 to-brand-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-brand-500/40">
-          <span className="text-4xl">🧁</span>
-        </div>
-        <h1 className="text-2xl font-bold text-white">PasteleríaApp</h1>
-        <p className="text-gray-400 text-sm mt-1">Sistema de Gestión de Visitas</p>
+        <img
+          src="/logo.png"
+          alt="MAINTDV"
+          className="w-24 h-24 mx-auto mb-4 rounded-3xl object-contain bg-white p-1.5 shadow-2xl shadow-black/40"
+        />
+        <h1 className="text-2xl font-bold text-white tracking-wide">MAINTDV</h1>
+        <p className="text-gray-400 text-sm mt-1">Sistema de Gestión de Mantenimiento</p>
       </div>
 
       {/* Card de login */}
@@ -42,7 +44,7 @@ export default function Login() {
             <input
               type="email"
               className="input"
-              placeholder="admin@pasteleria.com"
+              placeholder="tu@email.com"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               autoComplete="email"
