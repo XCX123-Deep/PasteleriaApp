@@ -201,7 +201,7 @@ export default function ReporteForm() {
     );
   }
 
-  const fotosExistentes = reporteExistente?.fotos || [];
+  const fotosExistentes = modoNuevo ? [] : (reporteExistente?.fotos || []);
 
   return (
     <div className="min-h-screen bg-gray-950">
