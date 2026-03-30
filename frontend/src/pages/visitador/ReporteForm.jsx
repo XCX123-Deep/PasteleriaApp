@@ -83,6 +83,7 @@ export default function ReporteForm() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('reporte');
   const [historial, setHistorial] = useState([]);
+  const [modoNuevo, setModoNuevo] = useState(false); // forzar creación nueva
 
   // Lightbox
   const [lightboxSrc, setLightboxSrc] = useState(null);
@@ -168,20 +169,22 @@ export default function ReporteForm() {
       }
 
       let resData;
-      if (reporteExistente) {
-        const r = await api.put(`/reportes/${reporteExistente._id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-        resData = r.data.data;
-        toast.success('✅ Reporte actualizado');
-      } else {
+      // Si estamos en modo nuevo, siempre POST
+      if (!reporteExistente || modoNuevo) {
         const r = await api.post('/reportes', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
         resData = r.data.data;
         toast.success('✅ Reporte creado');
+      } else {
+        const r = await api.put(`/reportes/${reporteExistente._id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        resData = r.data.data;
+        toast.success('✅ Reporte actualizado');
       }
       // Actualizar estado local con datos frescos del servidor
       setReporteExistente(resData);
       if (resData?.firma) setFirmaUrl(getMediaUrl(resData.firma));
       setFotos([]);
       setFotosPreviews([]);
+      setModoNuevo(false);
       navigate(-1);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error al guardar');
@@ -221,17 +224,55 @@ export default function ReporteForm() {
         {reporteExistente && <EstadoBadge estado={reporteExistente.estado} />}
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-800">
+      {/* Tabs + botón nuevo */}
+      <div className="flex border-b border-gray-800 items-stretch">
         {['reporte', 'historial'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-3 text-sm font-semibold transition-colors ${activeTab === tab ? 'text-brand-400 border-b-2 border-brand-400' : 'text-gray-500 hover:text-gray-300'}`}
+            className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+              activeTab === tab ? 'text-brand-400 border-b-2 border-brand-400' : 'text-gray-500 hover:text-gray-300'
+            }`}
           >
-            {tab === 'reporte' ? '📝 Reporte' : `📋 Historial (${historial.length})`}
+            {tab === 'reporte'
+              ? (modoNuevo ? '➕ Nuevo Reporte' : '📝 Reporte')
+              : `📋 Historial (${historial.length})`}
           </button>
         ))}
+        {/* Botón crear nuevo reporte */}
+        {historial.length > 0 && activeTab === 'reporte' && !modoNuevo && (
+          <button
+            onClick={() => {
+              setModoNuevo(true);
+              setForm({ estado: 'ROJO', descripcion: '', fechaVisita: new Date().toISOString().split('T')[0] });
+              setFotos([]);
+              setFotosPreviews([]);
+              setFirmaGuardada(false);
+              setFirmaUrl(null);
+              sigRef.current?.clear();
+            }}
+            className="px-3 py-2 text-xs text-brand-400 hover:text-brand-300 font-semibold border-l border-gray-800 flex-shrink-0 active:scale-95 transition-all"
+            title="Crear nuevo reporte"
+          >
+            ➕ Nuevo
+          </button>
+        )}
+        {modoNuevo && (
+          <button
+            onClick={() => {
+              setModoNuevo(false);
+              if (historial.length > 0) {
+                const ultimo = historial[0];
+                setReporteExistente(ultimo);
+                setForm({ estado: ultimo.estado, descripcion: ultimo.descripcion || '', fechaVisita: new Date(ultimo.fechaVisita).toISOString().split('T')[0] });
+                if (ultimo.firma) setFirmaUrl(getMediaUrl(ultimo.firma));
+              }
+            }}
+            className="px-3 py-2 text-xs text-gray-500 hover:text-gray-300 border-l border-gray-800 flex-shrink-0 active:scale-95 transition-all"
+          >
+            Cancelar
+          </button>
+        )}
       </div>
 
       {activeTab === 'reporte' ? (
@@ -369,7 +410,7 @@ export default function ReporteForm() {
                   <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                   Guardando...
                 </span>
-              ) : reporteExistente ? '💾 Actualizar Reporte' : '✅ Crear Reporte'}
+              ) : (modoNuevo || !reporteExistente) ? '✅ Crear Reporte' : '💾 Actualizar Reporte'}
             </button>
           </div>
         </form>
