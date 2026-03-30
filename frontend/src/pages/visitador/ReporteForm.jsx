@@ -246,15 +246,8 @@ export default function ReporteForm() {
 
           {/* Estado */}
           <div>
-            <label className="label text-base font-semibold text-white mb-3 block">Estado del reporte</label>
-            {isAdmin() || isTecnico() ? (
-              <EstadoSelector value={form.estado} onChange={(e) => setForm({ ...form, estado: e })} />
-            ) : (
-              <div className="flex items-center gap-3">
-                <EstadoBadge estado={form.estado} />
-                <p className="text-gray-500 text-xs">El estado lo asigna el administrador</p>
-              </div>
-            )}
+            <label className="label text-base font-semibold text-white mb-3 block">Estado del punto</label>
+            <EstadoSelector value={form.estado} onChange={(e) => setForm({ ...form, estado: e })} />
           </div>
 
           {/* Fecha */}

@@ -162,8 +162,8 @@ const actualizarReporte = async (req, res, next) => {
     }
 
     const { estado, descripcion, fechaVisita } = req.body;
-    // Solo admin o técnico asignado pueden cambiar el estado
-    if (estado && (isAdmin || esTecAsig)) {
+    // Admin, técnico asignado o el propio creador pueden cambiar el estado
+    if (estado && (isAdmin || esTecAsig || esDueño)) {
       reporte.estado = estado.toUpperCase();
     }
     if (descripcion !== undefined && (isAdmin || esDueño)) reporte.descripcion = descripcion;
