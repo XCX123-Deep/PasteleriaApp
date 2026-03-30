@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import { getMediaUrl } from '../../api/mediaUrl';
-import { EstadoBadge } from '../../components/EstadoStatus';
+import { EstadoBadge, EstadoSelector } from '../../components/EstadoStatus';
 import toast from 'react-hot-toast';
 
 /* ── Lightbox ─────────────────────────────────────────────────────────────── */
@@ -99,6 +99,16 @@ export default function AdminReportes() {
       setReportes((prev) => prev.filter((r) => r._id !== reporteId));
       toast.success('Reporte eliminado');
     } catch { toast.error('Error al eliminar reporte'); }
+  };
+
+  const handleCambiarEstado = async (reporteId, nuevoEstado) => {
+    try {
+      const fd = new FormData();
+      fd.append('estado', nuevoEstado);
+      const { data } = await api.put(`/reportes/${reporteId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setReportes((prev) => prev.map((r) => r._id === reporteId ? { ...r, estado: data.data.estado } : r));
+      toast.success('Estado actualizado ✅');
+    } catch { toast.error('Error al cambiar estado'); }
   };
 
   const filtrarPills = (e) => {
@@ -265,6 +275,15 @@ export default function AdminReportes() {
                     </svg>
                   </button>
                 </div>
+              </div>
+
+              {/* Estado — selector interactivo */}
+              <div className="border-t border-gray-800 pt-3">
+                <label className="text-gray-500 text-xs font-semibold uppercase tracking-wider block mb-2">📊 Estado</label>
+                <EstadoSelector
+                  value={r.estado}
+                  onChange={(nuevoEstado) => handleCambiarEstado(r._id, nuevoEstado)}
+                />
               </div>
 
               {r.descripcion && <p className="text-gray-300 text-sm leading-relaxed">{r.descripcion}</p>}
