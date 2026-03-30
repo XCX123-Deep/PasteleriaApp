@@ -95,13 +95,13 @@ export default function ReporteForm() {
       try {
         const [pRes, rRes] = await Promise.all([
           api.get(`/puntos/${puntoId}`),
-          // Filtrar solo el reporte del usuario actual en este punto
           api.get('/reportes', { params: { puntoDeVenta: puntoId, usuario: user._id } }),
         ]);
         setPunto(pRes.data.data);
         const reportes = rRes.data.data;
         setHistorial(reportes);
-        if (reportes.length > 0) {
+        // Solo pre-rellenar si NO estamos en modo "nuevo reporte"
+        if (reportes.length > 0 && !modoNuevo) {
           const ultimo = reportes[0];
           setReporteExistente(ultimo);
           setForm({
@@ -109,7 +109,6 @@ export default function ReporteForm() {
             descripcion: ultimo.descripcion || '',
             fechaVisita: new Date(ultimo.fechaVisita).toISOString().split('T')[0],
           });
-          // Cargar firma existente para mostrarla
           if (ultimo.firma) setFirmaUrl(getMediaUrl(ultimo.firma));
         }
       } catch { toast.error('Error cargando información'); }

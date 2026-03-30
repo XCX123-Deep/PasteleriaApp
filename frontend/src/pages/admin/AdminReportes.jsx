@@ -30,11 +30,15 @@ export default function AdminReportes() {
   const navigate = useNavigate();
   const [reportes, setReportes] = useState([]);
   const [tecnicos, setTecnicos] = useState([]);
+  const [puntos, setPuntos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtros, setFiltros] = useState({ estado: '', desde: '', hasta: '' });
   const [showFiltros, setShowFiltros] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const [asignando, setAsignando] = useState({});
+  const [showCrear, setShowCrear] = useState(false);
+  const [crearForm, setCrearForm] = useState({ puntoDeVenta: '', estado: 'ROJO', descripcion: '', fechaVisita: new Date().toISOString().split('T')[0] });
+  const [creando, setCreando] = useState(false);
 
   const fetchReportes = async () => {
     setLoading(true);
@@ -43,12 +47,14 @@ export default function AdminReportes() {
     if (filtros.desde)  params.desde  = filtros.desde;
     if (filtros.hasta)  params.hasta  = filtros.hasta;
     try {
-      const [rRes, uRes] = await Promise.all([
+      const [rRes, uRes, pRes] = await Promise.all([
         api.get('/reportes', { params }),
         api.get('/usuarios'),
+        api.get('/puntos'),
       ]);
       setReportes(rRes.data.data);
       setTecnicos(uRes.data.data.filter((u) => u.activo && u.rol === 'TECNICO'));
+      setPuntos(pRes.data.data);
     } catch { toast.error('Error cargando reportes'); }
     finally { setLoading(false); }
   };
@@ -65,6 +71,25 @@ export default function AdminReportes() {
       toast.success(tecnicoId ? 'Técnico asignado ✅' : 'Técnico removido');
     } catch { toast.error('Error al asignar técnico'); }
     finally { setAsignando((p) => ({ ...p, [reporteId]: false })); }
+  };
+
+  const handleCrearReporte = async (e) => {
+    e.preventDefault();
+    if (!crearForm.puntoDeVenta) { toast.error('Selecciona un punto'); return; }
+    setCreando(true);
+    try {
+      const fd = new FormData();
+      fd.append('puntoDeVenta', crearForm.puntoDeVenta);
+      fd.append('estado', crearForm.estado);
+      fd.append('descripcion', crearForm.descripcion);
+      fd.append('fechaVisita', crearForm.fechaVisita);
+      const { data } = await api.post('/reportes', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setReportes((prev) => [data.data, ...prev]);
+      setShowCrear(false);
+      setCrearForm({ puntoDeVenta: '', estado: 'ROJO', descripcion: '', fechaVisita: new Date().toISOString().split('T')[0] });
+      toast.success('Reporte creado ✅');
+    } catch { toast.error('Error al crear reporte'); }
+    finally { setCreando(false); }
   };
 
   const filtrarPills = (e) => {
@@ -85,6 +110,56 @@ export default function AdminReportes() {
     <div className="min-h-screen bg-gray-950">
       <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
 
+      {/* Modal crear reporte */}
+      {showCrear && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-end" onClick={() => setShowCrear(false)}>
+          <form
+            onSubmit={handleCrearReporte}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full bg-gray-900 rounded-t-3xl p-6 space-y-4 border-t border-gray-700"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-white text-lg">Nuevo Reporte</h2>
+              <button type="button" onClick={() => setShowCrear(false)} className="text-gray-400 text-2xl leading-none">✕</button>
+            </div>
+            <div>
+              <label className="label">Punto de venta</label>
+              <select className="input" required value={crearForm.puntoDeVenta} onChange={(e) => setCrearForm({ ...crearForm, puntoDeVenta: e.target.value })}>
+                <option value="">— Seleccionar punto —</option>
+                {puntos.map((p) => <option key={p._id} value={p._id}>{p.nombre} — {p.ciudad}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Estado</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[['ROJO','🔴'],['NARANJA','🟠'],['VERDE','🟢']].map(([v,icon]) => (
+                  <button type="button" key={v}
+                    onClick={() => setCrearForm({ ...crearForm, estado: v })}
+                    className={`py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                      crearForm.estado === v ? 'bg-gray-700 border-brand-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400'
+                    }`}>
+                    {icon} {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="label">Descripción</label>
+              <textarea className="input resize-none" rows={3} placeholder="Describe el hallazgo o situación..."
+                value={crearForm.descripcion} onChange={(e) => setCrearForm({ ...crearForm, descripcion: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Fecha de visita</label>
+              <input type="date" className="input" value={crearForm.fechaVisita}
+                onChange={(e) => setCrearForm({ ...crearForm, fechaVisita: e.target.value })} />
+            </div>
+            <button type="submit" disabled={creando} className="btn-primary disabled:opacity-60">
+              {creando ? 'Creando...' : '✅ Crear Reporte'}
+            </button>
+          </form>
+        </div>
+      )}
+
       <div className="page-header">
         <button onClick={() => navigate('/admin')} className="text-gray-400 hover:text-white p-1">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -92,6 +167,12 @@ export default function AdminReportes() {
           </svg>
         </button>
         <h1 className="font-bold text-white flex-1">Reportes</h1>
+        {/* Botón crear reporte */}
+        <button onClick={() => setShowCrear(true)} className="text-gray-400 hover:text-brand-400 p-2 rounded-xl hover:bg-brand-950/30 transition-colors" title="Crear reporte">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
         <button onClick={() => setShowFiltros(!showFiltros)} className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-gray-800">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
