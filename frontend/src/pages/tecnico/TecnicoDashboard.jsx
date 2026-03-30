@@ -104,7 +104,11 @@ export default function TecnicoDashboard() {
                   hour: '2-digit', minute: '2-digit',
                 });
                 return (
-                  <div key={m._id} className={`card flex items-center gap-3 border ${prox.bg}`}>
+                  <button
+                    key={m._id}
+                    onClick={() => navigate(`/tecnico/mantenimiento/${m._id}`)}
+                    className={`w-full card flex items-center gap-3 border text-left active:scale-[0.98] transition-all hover:bg-gray-800 ${prox.bg}`}
+                  >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <p className="font-semibold text-white text-sm truncate">{m.tipo}</p>
@@ -114,7 +118,10 @@ export default function TecnicoDashboard() {
                       <p className="text-gray-500 text-xs">📅 {fechaStr}</p>
                       {m.notas && <p className="text-gray-600 text-xs truncate mt-0.5">📝 {m.notas}</p>}
                     </div>
-                  </div>
+                    <svg className="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
                 );
               })}
             </div>

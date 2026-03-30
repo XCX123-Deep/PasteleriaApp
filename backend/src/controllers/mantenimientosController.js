@@ -1,4 +1,5 @@
 const Mantenimiento = require('../models/Mantenimiento');
+const { cloudinary } = require('../middlewares/upload');
 
 // GET /api/mantenimientos
 const listar = async (req, res, next) => {
@@ -17,6 +18,7 @@ const listar = async (req, res, next) => {
     const mantenimientos = await Mantenimiento.find(filtro)
       .populate('puntoDeVenta', 'nombre ciudad direccion')
       .populate('visitador', 'nombre email')
+      .populate('novedades.usuario', 'nombre email')
       .sort({ fechaHora: 1 });
 
     res.json({ success: true, data: mantenimientos });
@@ -60,6 +62,41 @@ const actualizar = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// PATCH /api/mantenimientos/:id/completar — TÉCNICO (solo el asignado)
+const completarMantenimiento = async (req, res, next) => {
+  try {
+    const m = await Mantenimiento.findById(req.params.id);
+    if (!m) return res.status(404).json({ success: false, message: 'Mantenimiento no encontrado.' });
+
+    // Solo el técnico asignado puede completarlo
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol) &&
+        m.visitador.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para editar este mantenimiento.' });
+    }
+
+    const { completado, notas, novedad } = req.body;
+    if (completado !== undefined) m.completado = completado === true || completado === 'true';
+    if (notas !== undefined) m.notas = notas;
+
+    // Fotos subidas via Cloudinary
+    if (req.files?.fotos) req.files.fotos.forEach((f) => m.fotos.push(f.path));
+    if (req.files?.firma) m.firma = req.files.firma[0].path;
+
+    // Novedad de texto
+    if (novedad && novedad.trim()) {
+      m.novedades.push({ texto: novedad.trim(), usuario: req.user._id });
+    }
+
+    await m.save();
+    await m.populate([
+      { path: 'puntoDeVenta', select: 'nombre ciudad' },
+      { path: 'visitador', select: 'nombre email' },
+      { path: 'novedades.usuario', select: 'nombre email' },
+    ]);
+    res.json({ success: true, message: 'Mantenimiento actualizado.', data: m });
+  } catch (err) { next(err); }
+};
+
 // DELETE /api/mantenimientos/:id — solo ADMIN (soft delete)
 const eliminar = async (req, res, next) => {
   try {
@@ -69,4 +106,4 @@ const eliminar = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { listar, crear, actualizar, eliminar };
+module.exports = { listar, crear, actualizar, eliminar, completarMantenimiento };
