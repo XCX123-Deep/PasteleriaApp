@@ -13,7 +13,7 @@ router.delete('/:id', requireRole('ADMIN'), eliminar);
 
 // TÉCNICO actualiza su propio mantenimiento (fotos, firma, notas, completado)
 router.patch('/:id/completar',
-  requireRole(['ADMIN', 'SUPER_ADMIN', 'TECNICO']),
+  requireRole('ADMIN', 'SUPER_ADMIN', 'TECNICO'),
   upload.fields([{ name: 'fotos', maxCount: 5 }, { name: 'firma', maxCount: 1 }]),
   completarMantenimiento
 );
