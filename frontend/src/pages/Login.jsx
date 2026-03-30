@@ -4,12 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Login() {
-  const { user, login, isAdmin, loading } = useAuth();
+  const { user, login, isAdmin, isLider, isTecnico, loading } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
 
-  // Redirigir si ya hay sesión
+  // Redirigir si ya hay sesión activa
   if (user) {
-    return <Navigate to={isAdmin() ? '/admin' : '/mis-puntos'} replace />;
+    if (isAdmin())   return <Navigate to="/admin"   replace />;
+    if (isLider())   return <Navigate to="/lider"   replace />;
+    if (isTecnico()) return <Navigate to="/tecnico" replace />;
+    return <Navigate to="/mis-puntos" replace />;
   }
 
   const handleSubmit = async (e) => {
