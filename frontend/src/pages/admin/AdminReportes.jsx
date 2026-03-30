@@ -92,6 +92,15 @@ export default function AdminReportes() {
     finally { setCreando(false); }
   };
 
+  const handleEliminarReporte = async (reporteId) => {
+    if (!window.confirm('¿Eliminar este reporte? Esta acción no se puede deshacer.')) return;
+    try {
+      await api.delete(`/reportes/${reporteId}`);
+      setReportes((prev) => prev.filter((r) => r._id !== reporteId));
+      toast.success('Reporte eliminado');
+    } catch { toast.error('Error al eliminar reporte'); }
+  };
+
   const filtrarPills = (e) => {
     const next = filtros.estado === e ? '' : e;
     setFiltros((f) => ({ ...f, estado: next }));
@@ -236,12 +245,26 @@ export default function AdminReportes() {
           reportes.map((r) => (
             <div key={r._id} className="card space-y-3">
               {/* Cabecera */}
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-white text-sm truncate">{r.puntoDeVenta?.nombre}</p>
                   <p className="text-gray-400 text-xs">👤 {r.usuario?.nombre}</p>
+                  <p className="text-gray-500 text-xs">
+                    🕐 {new Date(r.fechaVisita).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })}
+                  </p>
                 </div>
-                <EstadoBadge estado={r.estado} />
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <EstadoBadge estado={r.estado} />
+                  <button
+                    onClick={() => handleEliminarReporte(r._id)}
+                    className="p-1.5 text-gray-600 hover:text-red-400 hover:bg-red-950/30 rounded-lg transition-all active:scale-90"
+                    title="Eliminar reporte"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {r.descripcion && <p className="text-gray-300 text-sm leading-relaxed">{r.descripcion}</p>}

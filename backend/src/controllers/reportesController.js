@@ -127,7 +127,8 @@ const crearReporte = async (req, res, next) => {
       descripcion,
       fotos,
       firma: req.files?.firma ? req.files.firma[0].path : null,
-      fechaVisita: fechaVisita || Date.now(),
+      // Guardar al mediodía UTC para evitar desfase de zona horaria
+      fechaVisita: fechaVisita ? new Date(`${fechaVisita}T12:00:00.000Z`) : new Date(),
     });
 
     const populado = await reporte.populate([
@@ -167,7 +168,7 @@ const actualizarReporte = async (req, res, next) => {
       reporte.estado = estado.toUpperCase();
     }
     if (descripcion !== undefined && (isAdmin || esDueño)) reporte.descripcion = descripcion;
-    if (fechaVisita && isAdmin) reporte.fechaVisita = new Date(fechaVisita);
+    if (fechaVisita) reporte.fechaVisita = new Date(`${fechaVisita}T12:00:00.000Z`);
 
     if (req.files?.fotos) req.files.fotos.forEach((f) => reporte.fotos.push(f.path));
     if (req.files?.firma) reporte.firma = req.files.firma[0].path;
