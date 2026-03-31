@@ -1,54 +1,58 @@
 const nodemailer = require('nodemailer');
 
-// Colores e información descriptiva por estado
+// Etiquetas descriptivas por estado
 const estadoInfo = {
   ROJO:    { emoji: '🔴', label: 'ROJO — No Realizado',  color: '#ef4444', bg: '#450a0a' },
   NARANJA: { emoji: '🟠', label: 'NARANJA — En Proceso', color: '#f97316', bg: '#431407' },
   VERDE:   { emoji: '🟢', label: 'VERDE — Realizado',    color: '#22c55e', bg: '#052e16' },
 };
 
-// Transporter singleton (se reutiliza entre invocaciones serverless)
-let _transporter = null;
-function getTransporter() {
-  if (_transporter) return _transporter;
-  _transporter = nodemailer.createTransport({
+/**
+ * Crea un transporter fresco por invocación.
+ * En Vercel/serverless el módulo se puede cachear entre requests, pero la
+ * conexión TCP subyacente expira → usar pool:false y crear uno nuevo cada vez.
+ */
+function createTransporter() {
+  return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true', // true para port 465
+    secure: process.env.SMTP_SECURE === 'true',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    pool: false,
+    tls: { rejectUnauthorized: false },
   });
-  return _transporter;
 }
 
 /**
- * Enviar notificación a los administradores cuando se crea o actualiza un reporte.
+ * Enviar notificación cuando se crea o actualiza un reporte.
  * Fire-and-forget: nunca lanza excepción para no interrumpir el flujo principal.
- *
- * @param {Object} reporte  - Documento Reporte ya populado
- * @param {'creado'|'actualizado'} accion
- * @param {string|string[]} to - Email(s) de los administradores a notificar
  */
 async function enviarEmailReporte(reporte, accion = 'creado', to, extras = {}) {
-  // Resolver destinatario: array preferido, luego string, luego fallback de entorno
+  // Resolver destinatarios como array limpio
   const destinos = Array.isArray(to)
     ? to.filter(Boolean)
     : to ? [to] : (process.env.ADMIN_EMAIL ? [process.env.ADMIN_EMAIL] : []);
 
-  if (!process.env.SMTP_HOST || destinos.length === 0) {
-    console.warn('[emailService] SMTP no configurado o sin destinatario — email omitido.');
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || destinos.length === 0) {
+    console.warn('[emailService] SMTP no configurado o sin destinatario.', {
+      SMTP_HOST: !!process.env.SMTP_HOST,
+      SMTP_USER: !!process.env.SMTP_USER,
+      destinatarios: destinos.length,
+    });
     return;
   }
 
+  const transporter = createTransporter();
+
   try {
     const info = estadoInfo[reporte.estado] || estadoInfo.ROJO;
-    const punto = reporte.puntoDeVenta?.nombre || 'Desconocido';
-    const ciudad = reporte.puntoDeVenta?.ciudad || '';
+    const punto    = reporte.puntoDeVenta?.nombre || 'Desconocido';
+    const ciudad   = reporte.puntoDeVenta?.ciudad || '';
     const visitador = reporte.usuario?.nombre || 'Desconocido';
     const fecha = new Date(reporte.fechaVisita).toLocaleString('es-CO', {
-
       weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
@@ -58,8 +62,7 @@ async function enviarEmailReporte(reporte, accion = 'creado', to, extras = {}) {
       accion === 'novedad' ? 'Nueva novedad registrada' :
                              'Reporte actualizado';
 
-    const html = `
-<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#0f0f0f;font-family:Arial,sans-serif;">
@@ -76,7 +79,7 @@ async function enviarEmailReporte(reporte, accion = 'creado', to, extras = {}) {
           </td>
         </tr>
 
-        <!-- Badge de estado -->
+        <!-- Badge estado -->
         <tr>
           <td style="padding:24px 28px 0;">
             <div style="background:${info.bg};border:1px solid ${info.color};border-radius:12px;padding:16px;text-align:center;">
@@ -141,7 +144,7 @@ async function enviarEmailReporte(reporte, accion = 'creado', to, extras = {}) {
 </body>
 </html>`;
 
-    await getTransporter().sendMail({
+    await transporter.sendMail({
       from: `"MAINTDV ⚙️" <${process.env.SMTP_USER}>`,
       to: destinos,
       subject: accion === 'novedad'
@@ -150,10 +153,11 @@ async function enviarEmailReporte(reporte, accion = 'creado', to, extras = {}) {
       html,
     });
 
-    console.log(`[emailService] Email enviado a ${destinos.join(', ')} (${accion})`);
+    console.log(`[emailService] ✅ Enviado a [${destinos.join(', ')}] accion=${accion}`);
   } catch (err) {
-    // Logging sin relanzar — el reporte ya fue guardado
-    console.error('[emailService] Error enviando email:', err.message);
+    console.error('[emailService] ❌ Error:', err.message, '| code:', err.code);
+  } finally {
+    transporter.close();
   }
 }
 
