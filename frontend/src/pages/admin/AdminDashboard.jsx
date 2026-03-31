@@ -23,10 +23,11 @@ const hoy = () => new Date().toISOString().split('T')[0];
 
 function KpiCard({ icon, label, value, sub, color = 'brand' }) {
   const colors = {
-    brand: 'from-brand-600/20 to-brand-400/10 border-brand-500/20 text-brand-300',
-    red: 'from-red-950/60 to-red-900/20 border-red-800/40 text-red-400',
+    brand:  'from-brand-600/20 to-brand-400/10 border-brand-500/20 text-brand-300',
+    red:    'from-red-950/60 to-red-900/20 border-red-800/40 text-red-400',
     orange: 'from-orange-950/60 to-orange-900/20 border-orange-800/40 text-orange-400',
-    green: 'from-green-950/60 to-green-900/20 border-green-800/40 text-green-400',
+    green:  'from-green-950/60 to-green-900/20 border-green-800/40 text-green-400',
+    purple: 'from-purple-950/60 to-purple-900/20 border-purple-800/40 text-purple-300',
   };
   return (
     <div className={`bg-gradient-to-br ${colors[color]} rounded-2xl p-4 border flex flex-col gap-1 transition-all duration-300`}>
@@ -216,8 +217,27 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-2 gap-3">
                     <KpiCard icon="🏪" label="Puntos activos" value={stats.totalPuntos} sub="en total" />
                     <KpiCard icon="✅" label="Cumplimiento" value={`${stats.cumplimiento}%`} sub="en el rango" color="green" />
-                    <KpiCard icon="🔴" label="Críticos" value={stats.porEstado.ROJO} sub="en el rango" color="red" />
+                    <KpiCard icon="🔴" label="Críticos" value={stats.porEstado.ROJO} sub="No realizados" color="red" />
                     <KpiCard icon="🟠" label="En proceso" value={stats.porEstado.NARANJA} sub="en el rango" color="orange" />
+                  </div>
+
+                  {/* KPI tiempo promedio resolución — full width */}
+                  <div className="col-span-2">
+                    <KpiCard
+                      icon="⏱️"
+                      label="Tiempo prom. resolución de mantenimientos"
+                      value={
+                        stats.promedioDemora !== null && stats.promedioDemora !== undefined
+                          ? `${stats.promedioDemora}d`
+                          : '—'
+                      }
+                      sub={
+                        stats.promedioDemora !== null && stats.promedioDemora !== undefined
+                          ? `Basado en ${stats.totalMantenimientosCompletados} mantenimiento(s) completado(s) en el rango`
+                          : 'Sin mantenimientos completados en el rango'
+                      }
+                      color="purple"
+                    />
                   </div>
 
                   {/* Gráfico evolución semanal */}

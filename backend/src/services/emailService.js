@@ -1,10 +1,10 @@
 const nodemailer = require('nodemailer');
 
-// Colores visuales por estado
+// Colores e información descriptiva por estado
 const estadoInfo = {
-  ROJO: { emoji: '🔴', label: 'ROJO', color: '#ef4444', bg: '#450a0a' },
-  NARANJA: { emoji: '🟠', label: 'NARANJA', color: '#f97316', bg: '#431407' },
-  VERDE: { emoji: '🟢', label: 'VERDE', color: '#22c55e', bg: '#052e16' },
+  ROJO:    { emoji: '🔴', label: 'ROJO — No Realizado',  color: '#ef4444', bg: '#450a0a' },
+  NARANJA: { emoji: '🟠', label: 'NARANJA — En Proceso', color: '#f97316', bg: '#431407' },
+  VERDE:   { emoji: '🟢', label: 'VERDE — Realizado',    color: '#22c55e', bg: '#052e16' },
 };
 
 // Transporter singleton (se reutiliza entre invocaciones serverless)
@@ -32,12 +32,12 @@ function getTransporter() {
  * @param {string|string[]} to - Email(s) de los administradores a notificar
  */
 async function enviarEmailReporte(reporte, accion = 'creado', to, extras = {}) {
-  // Resolver destinatario: parámetro > ADMIN_EMAIL de entorno > salir
-  const destino = to
-    ? (Array.isArray(to) ? to.filter(Boolean).join(', ') : to)
-    : process.env.ADMIN_EMAIL;
+  // Resolver destinatario: array preferido, luego string, luego fallback de entorno
+  const destinos = Array.isArray(to)
+    ? to.filter(Boolean)
+    : to ? [to] : (process.env.ADMIN_EMAIL ? [process.env.ADMIN_EMAIL] : []);
 
-  if (!process.env.SMTP_HOST || !destino) {
+  if (!process.env.SMTP_HOST || destinos.length === 0) {
     console.warn('[emailService] SMTP no configurado o sin destinatario — email omitido.');
     return;
   }
@@ -143,14 +143,14 @@ async function enviarEmailReporte(reporte, accion = 'creado', to, extras = {}) {
 
     await getTransporter().sendMail({
       from: `"MAINTDV ⚙️" <${process.env.SMTP_USER}>`,
-      to: destino,
+      to: destinos,
       subject: accion === 'novedad'
         ? `🔔 Nueva novedad: ${punto} — ${info.emoji} ${info.label}`
         : `${info.emoji} Reporte ${accion}: ${punto} — Estado ${info.label}`,
       html,
     });
 
-    console.log(`[emailService] Email enviado a ${destino} (${accion})`);
+    console.log(`[emailService] Email enviado a ${destinos.join(', ')} (${accion})`);
   } catch (err) {
     // Logging sin relanzar — el reporte ya fue guardado
     console.error('[emailService] Error enviando email:', err.message);

@@ -1,5 +1,6 @@
 const Reporte = require('../models/Reporte');
 const PuntoDeVenta = require('../models/PuntoDeVenta');
+const Mantenimiento = require('../models/Mantenimiento');
 
 // GET /api/stats — Solo ADMIN
 const getStats = async (req, res, next) => {
@@ -66,6 +67,37 @@ const getStats = async (req, res, next) => {
       { $project: { nombre: '$punto.nombre', ciudad: '$punto.ciudad', count: 1 } },
     ]);
 
+    // ── Tiempo promedio de resolución de mantenimientos ──────────────────────
+    // Mantenimientos completados en el rango con timestamp válido
+    const demoras = await Mantenimiento.aggregate([
+      {
+        $match: {
+          completado: true,
+          completadoAt: { $gte: desde, $lte: hasta, $ne: null },
+        },
+      },
+      {
+        $project: {
+          // Diferencia en milisegundos → convertir a días
+          demora: {
+            $divide: [{ $subtract: ['$completadoAt', '$createdAt'] }, 1000 * 60 * 60 * 24],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          promedioDias: { $avg: '$demora' },
+          totalCompletados: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const promedioDemora = demoras.length > 0
+      ? Math.round(demoras[0].promedioDias * 10) / 10  // 1 decimal
+      : null;
+    const totalMantenimientosCompletados = demoras.length > 0 ? demoras[0].totalCompletados : 0;
+
     res.json({
       success: true,
       data: {
@@ -75,7 +107,9 @@ const getStats = async (req, res, next) => {
         porEstado: estadoMap,
         evolucion,
         topProblematicos,
-        rango: { desde, hasta }, // devolver el rango usado
+        promedioDemora,          // días promedio (null si no hay datos)
+        totalMantenimientosCompletados,
+        rango: { desde, hasta },
       },
     });
   } catch (err) { next(err); }

@@ -75,7 +75,12 @@ const completarMantenimiento = async (req, res, next) => {
     }
 
     const { completado, notas, novedad } = req.body;
-    if (completado !== undefined) m.completado = completado === true || completado === 'true';
+    if (completado !== undefined) {
+      const val = completado === true || completado === 'true';
+      m.completado = val;
+      // Registrar timestamp exacto de completación
+      m.completadoAt = val ? new Date() : null;
+    }
     if (notas !== undefined) m.notas = notas;
 
     // Fotos subidas via Cloudinary

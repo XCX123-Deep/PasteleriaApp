@@ -9,6 +9,7 @@ const mantenimientoSchema = new mongoose.Schema(
     fechaHora:    { type: Date, required: true },
     notas:        { type: String, trim: true },
     completado:   { type: Boolean, default: false },
+    completadoAt: { type: Date, default: null },
     activo:       { type: Boolean, default: true },
     // Evidencia del técnico
     fotos:        [{ type: String }],

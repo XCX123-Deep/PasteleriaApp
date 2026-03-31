@@ -13,16 +13,17 @@ const getEmailsAdmins = async () => {
   return admins.map((a) => a.email);
 };
 
-// Emails de admins + líderes asignados al punto (sin duplicados)
+// Emails de admins + líderes + asesores asignados al punto (sin duplicados)
 const getDestinatarios = async (puntoId) => {
   const [admins, punto] = await Promise.all([
     Usuario.find({ rol: { $in: ['ADMIN', 'SUPER_ADMIN'] }, activo: true }, 'email').lean(),
     PuntoDeVenta.findById(puntoId).populate('usuariosAsignados', 'email rol').lean(),
   ]);
-  const emailsLideres = (punto?.usuariosAsignados || [])
-    .filter((u) => u.rol === 'LIDER')
+  // Incluir líderes Y asesores (visitadores) asignados al punto
+  const emailsAsignados = (punto?.usuariosAsignados || [])
+    .filter((u) => u.rol === 'LIDER' || u.rol === 'VISITADOR')
     .map((u) => u.email);
-  const todos = [...new Set([...admins.map((a) => a.email), ...emailsLideres])];
+  const todos = [...new Set([...admins.map((a) => a.email), ...emailsAsignados])];
   return todos.filter(Boolean);
 };
 
