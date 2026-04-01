@@ -52,7 +52,22 @@ const listarReportes = async (req, res, next) => {
     }
 
     if (estado) filtro.estado = estado.toUpperCase();
-    if (puntoDeVenta) filtro.puntoDeVenta = puntoDeVenta;
+
+    // Para TECNICO: el puntoDeVenta se integra al $or para no sobreescribirlo
+    if (puntoDeVenta) {
+      if (req.user.rol === 'TECNICO' && filtro.$or) {
+        // Ver reportes del punto específico donde el técnico sea creador o tecnicoAsignado
+        delete filtro.$or;
+        filtro.puntoDeVenta = puntoDeVenta;
+        filtro.$or = [
+          { usuario: req.user._id },
+          { tecnicoAsignado: req.user._id },
+        ];
+      } else {
+        filtro.puntoDeVenta = puntoDeVenta;
+      }
+    }
+
     if (usuario) {
       if (['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol) || usuario === req.user._id.toString()) {
         filtro.usuario = usuario;
