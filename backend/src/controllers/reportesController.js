@@ -152,12 +152,14 @@ const crearReporte = async (req, res, next) => {
       { path: 'usuario', select: 'nombre email' },
     ]);
 
-    // Notificar a admins y líderes del punto — fire-and-forget
-    getDestinatarios(puntoDeVenta)
-      .then((emails) => enviarEmailReporte(populado, 'creado', emails))
-      .catch(() => {});
-
+    // Responder al cliente primero — email se envía después manteniendo la fn viva
     res.status(201).json({ success: true, message: 'Reporte creado exitosamente.', data: populado });
+
+    // await mantiene la función serverless viva hasta que el SMTP confirme
+    try {
+      const emails = await getDestinatarios(puntoDeVenta);
+      await enviarEmailReporte(populado, 'creado', emails);
+    } catch (_) {}
   } catch (error) {
     next(error);
   }
@@ -196,11 +198,14 @@ const actualizarReporte = async (req, res, next) => {
       { path: 'tecnicoAsignado', select: 'nombre email' },
     ]);
 
-    getDestinatarios(populado.puntoDeVenta._id)
-      .then((emails) => enviarEmailReporte(populado, 'actualizado', emails))
-      .catch(() => {});
-
+    // Responder al cliente primero
     res.json({ success: true, message: 'Reporte actualizado.', data: populado });
+
+    // await mantiene la función serverless viva hasta que el SMTP confirme
+    try {
+      const emails = await getDestinatarios(populado.puntoDeVenta._id);
+      await enviarEmailReporte(populado, 'actualizado', emails);
+    } catch (_) {}
   } catch (error) { next(error); }
 };
 
@@ -274,12 +279,14 @@ const agregarNovedad = async (req, res, next) => {
     ]);
     const ultima = reporte.novedades[reporte.novedades.length - 1];
 
-    // Notificar a admins y líderes del punto — fire-and-forget
-    getDestinatarios(reporte.puntoDeVenta._id)
-      .then((emails) => enviarEmailReporte(reporte, 'novedad', emails, { novedad: ultima.texto, autor: req.user.nombre }))
-      .catch(() => {});
-
+    // Responder al cliente primero
     res.status(201).json({ success: true, message: 'Novedad registrada.', data: ultima });
+
+    // await mantiene la función serverless viva hasta que el SMTP confirme
+    try {
+      const emails = await getDestinatarios(reporte.puntoDeVenta._id);
+      await enviarEmailReporte(reporte, 'novedad', emails, { novedad: ultima.texto, autor: req.user.nombre });
+    } catch (_) {}
   } catch (error) {
     next(error);
   }
