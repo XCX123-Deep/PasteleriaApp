@@ -29,14 +29,17 @@ export default function TecnicoMantenimiento() {
   useEffect(() => {
     const fetchMant = async () => {
       try {
-        const { data } = await api.get('/mantenimientos');
-        const found = data.data.find((m) => m._id === mantenimientoId);
+        const { data } = await api.get(`/mantenimientos/${mantenimientoId}`);
+        const found = data.data;
         if (!found) { toast.error('Mantenimiento no encontrado'); navigate(-1); return; }
         setMant(found);
         setNotas(found.notas || '');
         setCompletado(found.completado || false);
         if (found.firma) setFirmaDataUrl(found.firma);
-      } catch { toast.error('Error cargando mantenimiento'); }
+      } catch (err) {
+        if (err.response?.status === 404 || err.response?.status === 403) navigate(-1);
+        toast.error('Error cargando mantenimiento');
+      }
       finally { setLoading(false); }
     };
     fetchMant();

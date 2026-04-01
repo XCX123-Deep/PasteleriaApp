@@ -25,6 +25,24 @@ const listar = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// GET /api/mantenimientos/:id
+const obtenerUno = async (req, res, next) => {
+  try {
+    const m = await Mantenimiento.findById(req.params.id)
+      .populate('puntoDeVenta', 'nombre ciudad direccion')
+      .populate('visitador', 'nombre email')
+      .populate('novedades.usuario', 'nombre email rol');
+    if (!m || !m.activo) return res.status(404).json({ success: false, message: 'Mantenimiento no encontrado.' });
+
+    // Validar acceso: admin ve todo; técnico solo el suyo
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(req.user.rol) &&
+        m.visitador._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'No tienes acceso a este mantenimiento.' });
+    }
+    res.json({ success: true, data: m });
+  } catch (err) { next(err); }
+};
+
 // POST /api/mantenimientos — solo ADMIN
 const crear = async (req, res, next) => {
   try {
@@ -111,4 +129,4 @@ const eliminar = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { listar, crear, actualizar, eliminar, completarMantenimiento };
+module.exports = { listar, obtenerUno, crear, actualizar, eliminar, completarMantenimiento };

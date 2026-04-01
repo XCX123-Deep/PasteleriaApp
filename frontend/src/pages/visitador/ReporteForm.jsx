@@ -96,7 +96,7 @@ export default function ReporteForm() {
         // Admin y técnico ven todos los reportes del punto;
         // visitador/líder solo los propios
         const params = { puntoDeVenta: puntoId };
-        if (!isAdmin && !isTecnico) params.usuario = user._id;
+        if (!isAdmin() && !isTecnico()) params.usuario = user._id;
 
         const [pRes, rRes] = await Promise.all([
           api.get(`/puntos/${puntoId}`),

@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { listar, crear, actualizar, eliminar, completarMantenimiento } = require('../controllers/mantenimientosController');
+const { listar, obtenerUno, crear, actualizar, eliminar, completarMantenimiento } = require('../controllers/mantenimientosController');
+
 const { verifyToken, requireRole } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
 
 router.use(verifyToken);
 
 router.get('/', listar);
+router.get('/:id', obtenerUno);
 router.post('/', requireRole('ADMIN'), crear);
 router.put('/:id', requireRole('ADMIN'), actualizar);
 router.delete('/:id', requireRole('ADMIN'), eliminar);
