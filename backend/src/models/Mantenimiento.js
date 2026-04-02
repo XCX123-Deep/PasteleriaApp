@@ -4,8 +4,9 @@ const mantenimientoSchema = new mongoose.Schema(
   {
     puntoDeVenta: { type: mongoose.Schema.Types.ObjectId, ref: 'PuntoDeVenta', required: true },
     visitador:    { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
-    tipo:         { type: String, required: true, trim: true },
-    frecuencia:   { type: String, enum: ['SEMANAL', 'QUINCENAL', 'MENSUAL', 'UNICA'], default: 'MENSUAL' },
+    tipo:         { type: String, trim: true },                // compat con registros antiguos
+    tipos:        [{ type: String, trim: true }],              // múltiples tipos de tarea
+    frecuencia:   { type: String, enum: ['SEMANAL', 'QUINCENAL', 'MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL', 'UNICA'], default: 'MENSUAL' },
     fechaHora:    { type: Date, required: true },
     notas:        { type: String, trim: true },
     completado:   { type: Boolean, default: false },

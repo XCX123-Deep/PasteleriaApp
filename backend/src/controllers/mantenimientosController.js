@@ -46,8 +46,17 @@ const obtenerUno = async (req, res, next) => {
 // POST /api/mantenimientos — solo ADMIN
 const crear = async (req, res, next) => {
   try {
-    const { puntoDeVenta, visitador, tipo, frecuencia, fechaHora, notas } = req.body;
-    const m = await Mantenimiento.create({ puntoDeVenta, visitador, tipo, frecuencia, fechaHora, notas });
+    const { puntoDeVenta, visitador, tipo, tipos, frecuencia, fechaHora, notas } = req.body;
+    // Normalizar tipos: acepta array o string legacy
+    const tiposArr = Array.isArray(tipos) && tipos.length
+      ? tipos
+      : (tipo ? [tipo] : []);
+    const m = await Mantenimiento.create({
+      puntoDeVenta, visitador,
+      tipos: tiposArr,
+      tipo: tiposArr[0] || tipo || '',   // compat
+      frecuencia, fechaHora, notas,
+    });
     const populado = await m.populate([
       { path: 'puntoDeVenta', select: 'nombre ciudad' },
       { path: 'visitador', select: 'nombre email' },
@@ -59,13 +68,20 @@ const crear = async (req, res, next) => {
 // PUT /api/mantenimientos/:id — solo ADMIN
 const actualizar = async (req, res, next) => {
   try {
-    const { puntoDeVenta, visitador, tipo, frecuencia, fechaHora, notas, completado } = req.body;
+    const { puntoDeVenta, visitador, tipo, tipos, frecuencia, fechaHora, notas, completado } = req.body;
     const m = await Mantenimiento.findById(req.params.id);
     if (!m) return res.status(404).json({ success: false, message: 'No encontrado.' });
 
     if (puntoDeVenta) m.puntoDeVenta = puntoDeVenta;
     if (visitador) m.visitador = visitador;
-    if (tipo) m.tipo = tipo;
+    // Actualizar tipos
+    if (Array.isArray(tipos) && tipos.length) {
+      m.tipos = tipos;
+      m.tipo  = tipos[0];       // compat
+    } else if (tipo) {
+      m.tipo  = tipo;
+      m.tipos = [tipo];
+    }
     if (frecuencia) m.frecuencia = frecuencia;
     if (fechaHora) m.fechaHora = new Date(fechaHora);
     if (notas !== undefined) m.notas = notas;

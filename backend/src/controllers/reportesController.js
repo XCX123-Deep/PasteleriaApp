@@ -95,7 +95,8 @@ const obtenerReporte = async (req, res, next) => {
     const reporte = await Reporte.findById(req.params.id)
       .populate('puntoDeVenta', 'nombre ciudad direccion contactoNombre contactoTelefono')
       .populate('usuario', 'nombre email rol')
-      .populate('novedades.usuario', 'nombre email rol');
+      .populate('novedades.usuario', 'nombre email rol')
+      .populate('observaciones.usuario', 'nombre email');
     if (!reporte) return res.status(404).json({ success: false, message: 'Reporte no encontrado.' });
 
     // No-admin: solo ve reportes de sus puntos asignados o propios
@@ -292,4 +293,40 @@ const agregarNovedad = async (req, res, next) => {
   }
 };
 
-module.exports = { listarReportes, obtenerReporte, crearReporte, actualizarReporte, eliminarReporte, agregarNovedad, asignarTecnico };
+// POST /api/reportes/:id/observacion — Solo ADMIN/SUPER_ADMIN
+const agregarObservacion = async (req, res, next) => {
+  try {
+    const { texto } = req.body;
+    if (!texto || !texto.trim()) {
+      return res.status(400).json({ success: false, message: 'El texto de la observacion es requerido.' });
+    }
+    const reporte = await Reporte.findById(req.params.id);
+    if (!reporte) return res.status(404).json({ success: false, message: 'Reporte no encontrado.' });
+
+    reporte.observaciones.push({ texto: texto.trim(), usuario: req.user._id });
+    await reporte.save();
+
+    await reporte.populate([
+      { path: 'puntoDeVenta', select: 'nombre ciudad' },
+      { path: 'usuario', select: 'nombre email' },
+      { path: 'observaciones.usuario', select: 'nombre email' },
+    ]);
+    const ultima = reporte.observaciones[reporte.observaciones.length - 1];
+
+    // Responder al cliente
+    res.status(201).json({ success: true, message: 'Observacion registrada.', data: ultima });
+
+    // Notificar por email
+    try {
+      const emails = await getDestinatarios(reporte.puntoDeVenta._id);
+      await enviarEmailReporte(reporte, 'novedad', emails, {
+        novedad: `Observacion del administrador: ${ultima.texto}`,
+        autor: req.user.nombre,
+      });
+    } catch (_) {}
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { listarReportes, obtenerReporte, crearReporte, actualizarReporte, eliminarReporte, agregarNovedad, agregarObservacion, asignarTecnico };

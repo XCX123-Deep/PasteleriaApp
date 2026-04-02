@@ -181,7 +181,9 @@ export default function TecnicoMantenimiento() {
         {/* Info + estado */}
         <div className="card space-y-2">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-brand-400 font-bold text-base flex-1">{mant.tipo}</p>
+            <p className="text-brand-400 font-bold text-base flex-1">
+              {(mant.tipos?.length ? mant.tipos : (mant.tipo ? [mant.tipo] : [])).join(' · ') || mant.tipo}
+            </p>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold flex-shrink-0 ${
               mant.completado
                 ? 'bg-green-950 text-green-400 border border-green-700'
@@ -196,6 +198,14 @@ export default function TecnicoMantenimiento() {
           <p className="text-gray-500 text-xs">📅 {fechaStr}</p>
           {mant.frecuencia && <p className="text-gray-600 text-xs">🔁 {mant.frecuencia}</p>}
         </div>
+
+        {/* Descripción / instrucciones del administrador */}
+        {mant.notas && (
+          <div className="bg-brand-950/30 border border-brand-700/40 rounded-2xl p-4 space-y-1">
+            <p className="text-brand-400 text-xs font-bold uppercase tracking-wider">📋 Instrucciones del administrador</p>
+            <p className="text-white text-sm leading-relaxed">{mant.notas}</p>
+          </div>
+        )}
 
         {/* Toggle Completado */}
         <button

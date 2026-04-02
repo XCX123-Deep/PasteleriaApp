@@ -39,6 +39,8 @@ export default function AdminReportes() {
   const [showCrear, setShowCrear] = useState(false);
   const [crearForm, setCrearForm] = useState({ puntoDeVenta: '', estado: 'ROJO', descripcion: '', fechaVisita: new Date().toISOString().split('T')[0] });
   const [creando, setCreando] = useState(false);
+  const [obsTexto, setObsTexto] = useState({});  // { [reporteId]: string }
+  const [obsGuardando, setObsGuardando] = useState({});
 
   const fetchReportes = async () => {
     setLoading(true);
@@ -109,6 +111,23 @@ export default function AdminReportes() {
       setReportes((prev) => prev.map((r) => r._id === reporteId ? { ...r, estado: data.data.estado } : r));
       toast.success('Estado actualizado ✅');
     } catch { toast.error('Error al cambiar estado'); }
+  };
+
+  const handleAgregarObservacion = async (reporteId) => {
+    const texto = (obsTexto[reporteId] || '').trim();
+    if (!texto) { toast.error('Escribe una observación'); return; }
+    setObsGuardando((p) => ({ ...p, [reporteId]: true }));
+    try {
+      const { data } = await api.post(`/reportes/${reporteId}/observacion`, { texto });
+      setReportes((prev) => prev.map((r) =>
+        r._id === reporteId
+          ? { ...r, observaciones: [...(r.observaciones || []), data.data] }
+          : r
+      ));
+      setObsTexto((p) => ({ ...p, [reporteId]: '' }));
+      toast.success('Observación añadida ✅');
+    } catch { toast.error('Error al guardar observación'); }
+    finally { setObsGuardando((p) => ({ ...p, [reporteId]: false })); }
   };
 
   const filtrarPills = (e) => {
@@ -334,6 +353,39 @@ export default function AdminReportes() {
                   ))}
                 </div>
               )}
+
+              {/* Observaciones del admin */}
+              <div className="border-t border-gray-800 pt-3 space-y-2">
+                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">📝 Observaciones del admin</p>
+                {(r.observaciones || []).length > 0 && (
+                  <div className="space-y-2">
+                    {r.observaciones.map((o, i) => (
+                      <div key={i} className="bg-yellow-950/20 border border-yellow-800/30 rounded-xl p-3">
+                        <p className="text-yellow-200 text-sm leading-relaxed">{o.texto}</p>
+                        <p className="text-yellow-600 text-xs mt-1">
+                          {o.usuario?.nombre || 'Admin'} · {new Date(o.fecha).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    className="input text-sm flex-1 py-2"
+                    placeholder="Añadir observación..."
+                    value={obsTexto[r._id] || ''}
+                    onChange={(e) => setObsTexto((p) => ({ ...p, [r._id]: e.target.value }))}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAgregarObservacion(r._id)}
+                  />
+                  <button
+                    onClick={() => handleAgregarObservacion(r._id)}
+                    disabled={obsGuardando[r._id]}
+                    className="bg-yellow-700/40 text-yellow-300 border border-yellow-700/50 rounded-xl px-3 text-sm font-medium hover:bg-yellow-700/60 transition disabled:opacity-50 active:scale-95"
+                  >
+                    {obsGuardando[r._id] ? '...' : '+ Obs.'}
+                  </button>
+                </div>
+              </div>
 
               {/* Firma */}
               {r.firma && (

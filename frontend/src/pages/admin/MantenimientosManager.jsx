@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import toast from 'react-hot-toast';
 
-const FRECUENCIAS = ['UNICA', 'SEMANAL', 'QUINCENAL', 'MENSUAL'];
+const FRECUENCIAS = ['UNICA', 'SEMANAL', 'QUINCENAL', 'MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'];
+
 const TIPOS_COMUNES = [
   'Limpieza de refrigeradores',
   'Calibración de balanzas',
@@ -11,21 +12,36 @@ const TIPOS_COMUNES = [
   'Mantenimiento de hornos',
   'Inspección sanitaria',
   'Revisión eléctrica',
-  'Otro',
+  'Control de temperatura',
+  'Revisión de instalaciones',
 ];
 
-const emptyForm = { puntoDeVenta: '', visitador: '', tipo: '', frecuencia: 'MENSUAL', fechaHora: '', notas: '' };
+const emptyForm = {
+  puntoDeVenta: '',
+  visitadores: [],   // array de IDs
+  tipos: [],         // array de strings
+  tipoCustom: '',
+  frecuencia: 'MENSUAL',
+  fechaHora: '',
+  notas: '',
+};
+
+// Helper: etiqueta legible de tipos para mostrar en tarjeta
+const tiposLabel = (m) => {
+  const arr = m.tipos?.length ? m.tipos : (m.tipo ? [m.tipo] : []);
+  return arr.join(' · ') || '—';
+};
 
 export default function MantenimientosManager() {
   const navigate = useNavigate();
   const [mantenimientos, setMantenimientos] = useState([]);
-  const [puntos, setPuntos] = useState([]);
-  const [usuarios, setUsuarios] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(false);
-  const [editando, setEditando] = useState(null);
-  const [form, setForm] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
+  const [puntos, setPuntos]                 = useState([]);
+  const [usuarios, setUsuarios]             = useState([]);
+  const [loading, setLoading]               = useState(true);
+  const [modal, setModal]                   = useState(false);
+  const [editando, setEditando]             = useState(null);
+  const [form, setForm]                     = useState(emptyForm);
+  const [saving, setSaving]                 = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -45,12 +61,14 @@ export default function MantenimientosManager() {
   useEffect(() => { fetchAll(); }, []);
 
   const abrirCrear = () => { setEditando(null); setForm(emptyForm); setModal(true); };
+
   const abrirEditar = (m) => {
     setEditando(m);
     setForm({
       puntoDeVenta: m.puntoDeVenta._id,
-      visitador: m.visitador._id,
-      tipo: m.tipo,
+      visitadores: [m.visitador._id],
+      tipos: m.tipos?.length ? m.tipos : (m.tipo ? [m.tipo] : []),
+      tipoCustom: '',
       frecuencia: m.frecuencia,
       fechaHora: new Date(m.fechaHora).toISOString().slice(0, 16),
       notas: m.notas || '',
@@ -60,20 +78,61 @@ export default function MantenimientosManager() {
 
   const cerrar = () => { setModal(false); setEditando(null); setForm(emptyForm); };
 
+  // Toggle tipo en la lista
+  const toggleTipo = (t) => {
+    setForm((f) => ({
+      ...f,
+      tipos: f.tipos.includes(t) ? f.tipos.filter((x) => x !== t) : [...f.tipos, t],
+    }));
+  };
+
+  // Toggle técnico en la lista
+  const toggleTecnico = (id) => {
+    setForm((f) => ({
+      ...f,
+      visitadores: f.visitadores.includes(id)
+        ? f.visitadores.filter((x) => x !== id)
+        : [...f.visitadores, id],
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.puntoDeVenta || !form.visitador || !form.tipo || !form.fechaHora) {
-      toast.error('Completa todos los campos requeridos');
+    const tiposFinal = [...form.tipos];
+    if (form.tipoCustom.trim()) tiposFinal.push(form.tipoCustom.trim());
+
+    if (!form.puntoDeVenta || form.visitadores.length === 0 || tiposFinal.length === 0 || !form.fechaHora) {
+      toast.error('Selecciona punto, al menos un técnico, al menos un tipo y la fecha');
       return;
     }
     setSaving(true);
     try {
       if (editando) {
-        await api.put(`/mantenimientos/${editando._id}`, form);
+        // Al editar: actualizar con el primer técnico y los tipos
+        await api.put(`/mantenimientos/${editando._id}`, {
+          puntoDeVenta: form.puntoDeVenta,
+          visitador: form.visitadores[0],
+          tipos: tiposFinal,
+          frecuencia: form.frecuencia,
+          fechaHora: form.fechaHora,
+          notas: form.notas,
+        });
         toast.success('✅ Mantenimiento actualizado');
       } else {
-        await api.post('/mantenimientos', form);
-        toast.success('✅ Mantenimiento programado');
+        // Al crear: un registro por cada técnico seleccionado
+        await Promise.all(
+          form.visitadores.map((vid) =>
+            api.post('/mantenimientos', {
+              puntoDeVenta: form.puntoDeVenta,
+              visitador: vid,
+              tipos: tiposFinal,
+              frecuencia: form.frecuencia,
+              fechaHora: form.fechaHora,
+              notas: form.notas,
+            })
+          )
+        );
+        toast.success(`✅ ${form.visitadores.length > 1 ? form.visitadores.length + ' mantenimientos programados' : 'Mantenimiento programado'}`);
       }
       cerrar();
       fetchAll();
@@ -101,10 +160,10 @@ export default function MantenimientosManager() {
   const proximidad = (fechaHora) => {
     const diff = new Date(fechaHora) - new Date();
     const dias = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    if (dias < 0) return { texto: 'Vencido', color: 'text-red-400 bg-red-950/40' };
-    if (dias === 0) return { texto: 'Hoy', color: 'text-orange-400 bg-orange-950/40' };
-    if (dias === 1) return { texto: 'Mañana', color: 'text-yellow-400 bg-yellow-950/40' };
-    if (dias <= 7) return { texto: `En ${dias}d`, color: 'text-blue-400 bg-blue-950/40' };
+    if (dias < 0)  return { texto: 'Vencido',   color: 'text-red-400 bg-red-950/40' };
+    if (dias === 0) return { texto: 'Hoy',       color: 'text-orange-400 bg-orange-950/40' };
+    if (dias === 1) return { texto: 'Mañana',    color: 'text-yellow-400 bg-yellow-950/40' };
+    if (dias <= 7)  return { texto: `En ${dias}d`, color: 'text-blue-400 bg-blue-950/40' };
     return { texto: `En ${dias}d`, color: 'text-gray-400 bg-gray-800' };
   };
 
@@ -139,7 +198,7 @@ export default function MantenimientosManager() {
               <div key={m._id} className={`card space-y-2 ${m.completado ? 'opacity-50' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-sm truncate">{m.tipo}</p>
+                    <p className="font-semibold text-white text-sm">{tiposLabel(m)}</p>
                     <p className="text-gray-400 text-xs truncate">🏪 {m.puntoDeVenta?.nombre}</p>
                     <p className="text-gray-500 text-xs">🔧 {m.visitador?.nombre}</p>
                   </div>
@@ -149,7 +208,7 @@ export default function MantenimientosManager() {
                   </div>
                 </div>
                 <p className="text-gray-400 text-xs">📅 {formatFecha(m.fechaHora)}</p>
-                {m.notas && <p className="text-gray-500 text-xs italic">{m.notas}</p>}
+                {m.notas && <p className="text-gray-500 text-xs italic">📋 {m.notas}</p>}
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={() => toggleCompletado(m)}
@@ -169,10 +228,12 @@ export default function MantenimientosManager() {
       {/* Modal crear/editar */}
       {modal && (
         <div className="fixed inset-0 z-40 bg-black/70 flex items-end" onClick={cerrar}>
-          <div className="bg-gray-900 w-full rounded-t-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-900 w-full rounded-t-3xl p-5 space-y-4 max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold text-white text-base">{editando ? 'Editar' : 'Nuevo'} mantenimiento</h2>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-4">
+
+              {/* Punto de venta */}
               <div>
                 <label className="label">Punto de venta *</label>
                 <select className="input" value={form.puntoDeVenta} onChange={(e) => setForm({ ...form, puntoDeVenta: e.target.value })}>
@@ -180,26 +241,66 @@ export default function MantenimientosManager() {
                   {puntos.map((p) => <option key={p._id} value={p._id}>{p.nombre} — {p.ciudad}</option>)}
                 </select>
               </div>
+
+              {/* Técnicos (multi-selección) */}
               <div>
-                <label className="label">Técnico asignado *</label>
-                <select className="input" value={form.visitador} onChange={(e) => setForm({ ...form, visitador: e.target.value })}>
-                  <option value="">Seleccionar técnico...</option>
-                  {usuarios.length === 0
-                    ? <option disabled>No hay técnicos activos</option>
-                    : usuarios.map((u) => <option key={u._id} value={u._id}>{u.nombre}</option>)
-                  }
-                </select>
-              </div>
-              <div>
-                <label className="label">Tipo de mantenimiento *</label>
-                <select className="input" value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}>
-                  <option value="">Seleccionar...</option>
-                  {TIPOS_COMUNES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-                {form.tipo === 'Otro' && (
-                  <input className="input mt-2" placeholder="Describe el tipo..." onChange={(e) => setForm({ ...form, tipo: e.target.value })} />
+                <label className="label">Técnico(s) asignado(s) *</label>
+                {usuarios.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No hay técnicos activos</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {usuarios.map((u) => {
+                      const sel = form.visitadores.includes(u._id);
+                      return (
+                        <button
+                          key={u._id}
+                          type="button"
+                          onClick={() => toggleTecnico(u._id)}
+                          className={`py-2 px-3 rounded-xl text-xs text-left border transition-all ${
+                            sel
+                              ? 'bg-brand-700/30 border-brand-500 text-brand-300'
+                              : 'bg-gray-800/50 border-gray-700 text-gray-400'
+                          }`}
+                        >
+                          {sel ? '✅ ' : '👤 '}{u.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
+
+              {/* Tipos de mantenimiento (multi-selección) */}
+              <div>
+                <label className="label">Tipo(s) de mantenimiento *</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {TIPOS_COMUNES.map((t) => {
+                    const sel = form.tipos.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => toggleTipo(t)}
+                        className={`py-2 px-3 rounded-xl text-xs text-left border transition-all ${
+                          sel
+                            ? 'bg-teal-700/30 border-teal-500 text-teal-300'
+                            : 'bg-gray-800/50 border-gray-700 text-gray-400'
+                        }`}
+                      >
+                        {sel ? '✅ ' : '🔧 '}{t}
+                      </button>
+                    );
+                  })}
+                </div>
+                <input
+                  className="input mt-2"
+                  placeholder="Otro tipo personalizado (opcional)..."
+                  value={form.tipoCustom}
+                  onChange={(e) => setForm({ ...form, tipoCustom: e.target.value })}
+                />
+              </div>
+
+              {/* Frecuencia y fecha */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label">Frecuencia</label>
@@ -212,10 +313,13 @@ export default function MantenimientosManager() {
                   <input type="datetime-local" className="input" value={form.fechaHora} onChange={(e) => setForm({ ...form, fechaHora: e.target.value })} />
                 </div>
               </div>
+
+              {/* Notas */}
               <div>
-                <label className="label">Notas adicionales</label>
-                <textarea className="input resize-none" rows={2} value={form.notas} onChange={(e) => setForm({ ...form, notas: e.target.value })} placeholder="Instrucciones, observaciones..." />
+                <label className="label">Descripción / Instrucciones</label>
+                <textarea className="input resize-none" rows={3} value={form.notas} onChange={(e) => setForm({ ...form, notas: e.target.value })} placeholder="Instrucciones para el técnico, observaciones importantes..." />
               </div>
+
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={cerrar} className="flex-1 btn-secondary">Cancelar</button>
                 <button type="submit" disabled={saving} className="flex-1 btn-primary disabled:opacity-60">
