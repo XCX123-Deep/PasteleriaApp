@@ -83,6 +83,7 @@ const listarReportes = async (req, res, next) => {
       .populate('puntoDeVenta', 'nombre ciudad direccion')
       .populate('usuario', 'nombre email rol')
       .populate('tecnicoAsignado', 'nombre email')
+      .populate('observaciones.usuario', 'nombre email')
       .sort({ fechaVisita: -1 });
 
     res.json({ success: true, data: reportes });

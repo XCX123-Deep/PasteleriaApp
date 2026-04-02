@@ -208,6 +208,20 @@ export default function TecnicoPunto() {
                 👤 {reporteActivo.usuario?.nombre} · 📅 {new Date(reporteActivo.fechaVisita).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
               </p>
               {reporteActivo.descripcion && <p className="text-gray-300 text-sm">{reporteActivo.descripcion}</p>}
+
+              {/* Observaciones del admin */}
+              {reporteActivo.observaciones?.length > 0 && (
+                <div className="space-y-1.5 pt-1 border-t border-gray-700">
+                  <p className="text-yellow-500 text-xs font-semibold uppercase tracking-wider">📝 Observaciones del admin</p>
+                  {reporteActivo.observaciones.map((o, i) => (
+                    <div key={i} className="bg-yellow-950/20 border border-yellow-800/30 rounded-xl p-2.5">
+                      <p className="text-yellow-200 text-sm">{o.texto}</p>
+                      <p className="text-yellow-700 text-xs mt-0.5">{o.usuario?.nombre || 'Admin'}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {reporteActivo.fotos?.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {reporteActivo.fotos.map((f, i) => (
