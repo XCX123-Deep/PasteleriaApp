@@ -2,6 +2,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { AdminRoute, LiderRoute, TecnicoRoute, VisitadorRoute, ProtectedRoute } from './components/ProtectedRoute';
+import FueraDeServicio from './pages/FueraDeServicio';
+
+// ─── MANTENIMIENTO ──────────────────────────────────────────────────────────
+// Cambia a false para reactivar el servicio y haz push
+const MAINTENANCE_MODE = true;
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Pages — Auth
 import Login from './pages/Login';
@@ -41,6 +47,9 @@ function RootRedirect() {
 }
 
 function App() {
+  // ── Modo mantenimiento: bloquea TODO el acceso ──
+  if (MAINTENANCE_MODE) return <FueraDeServicio />;
+
   return (
     <AuthProvider>
       <BrowserRouter>
