@@ -6,7 +6,7 @@ import FueraDeServicio from './pages/FueraDeServicio';
 
 // ─── MANTENIMIENTO ──────────────────────────────────────────────────────────
 // Cambia a false para reactivar el servicio y haz push
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Pages — Auth
