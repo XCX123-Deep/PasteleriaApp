@@ -68,23 +68,33 @@ const getStats = async (req, res, next) => {
     ]);
 
     // ── Tiempo promedio de resolución de mantenimientos ──────────────────────
-    // Todos los completados con completadoAt válido (sin filtro de rango para
-    // asegurar que siempre haya datos si existe al menos uno completado)
+    // Usa completadoAt si existe, sino updatedAt como aproximación.
+    // Así funciona con datos antiguos que no tenían completadoAt asignado.
     const demoras = await Mantenimiento.aggregate([
+      { $match: { completado: true } },
       {
-        $match: {
-          completado: true,
-          completadoAt: { $ne: null, $exists: true, $type: 'date' },
+        $project: {
+          // Timestamp de finalización: completadoAt si válido, else updatedAt
+          tsCompletado: {
+            $cond: {
+              if: { $and: [{ $ne: ['$completadoAt', null] }, { $gt: ['$completadoAt', new Date(0)] }] },
+              then: '$completadoAt',
+              else: '$updatedAt',
+            },
+          },
+          creadoAt: '$createdAt',
         },
       },
       {
         $project: {
           // Diferencia en ms → días
           demora: {
-            $divide: [{ $subtract: ['$completadoAt', '$createdAt'] }, 1000 * 60 * 60 * 24],
+            $divide: [{ $subtract: ['$tsCompletado', '$creadoAt'] }, 1000 * 60 * 60 * 24],
           },
         },
       },
+      // Descartar valores negativos o absurdos (> 365 días)
+      { $match: { demora: { $gte: 0, $lte: 365 } } },
       {
         $group: {
           _id: null,
@@ -95,7 +105,7 @@ const getStats = async (req, res, next) => {
     ]);
 
     const promedioDemora = demoras.length > 0
-      ? Math.round(demoras[0].promedioDias * 10) / 10  // 1 decimal
+      ? Math.round(demoras[0].promedioDias * 10) / 10
       : null;
     const totalMantenimientosCompletados = demoras.length > 0 ? demoras[0].totalCompletados : 0;
 
