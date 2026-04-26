@@ -68,17 +68,18 @@ const getStats = async (req, res, next) => {
     ]);
 
     // ── Tiempo promedio de resolución de mantenimientos ──────────────────────
-    // Mantenimientos completados en el rango con timestamp válido
+    // Todos los completados con completadoAt válido (sin filtro de rango para
+    // asegurar que siempre haya datos si existe al menos uno completado)
     const demoras = await Mantenimiento.aggregate([
       {
         $match: {
           completado: true,
-          completadoAt: { $gte: desde, $lte: hasta, $ne: null },
+          completadoAt: { $ne: null, $exists: true, $type: 'date' },
         },
       },
       {
         $project: {
-          // Diferencia en milisegundos → convertir a días
+          // Diferencia en ms → días
           demora: {
             $divide: [{ $subtract: ['$completadoAt', '$createdAt'] }, 1000 * 60 * 60 * 24],
           },

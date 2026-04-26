@@ -85,7 +85,11 @@ const actualizar = async (req, res, next) => {
     if (frecuencia) m.frecuencia = frecuencia;
     if (fechaHora) m.fechaHora = new Date(fechaHora);
     if (notas !== undefined) m.notas = notas;
-    if (completado !== undefined) m.completado = completado;
+    if (completado !== undefined) {
+      const val = completado === true || completado === 'true';
+      m.completado   = val;
+      m.completadoAt = val ? (m.completadoAt || new Date()) : null;
+    }
 
     await m.save();
     const populado = await m.populate([
